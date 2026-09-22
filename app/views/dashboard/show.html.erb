@@ -1,0 +1,43 @@
+<section class="page-title">
+  <h1>Operations Dashboard</h1>
+  <p>Signed in as <%= current_user.full_name %> · <%= current_user.role_label %></p>
+</section>
+
+<section class="metric-grid">
+  <article>
+    <span>Users</span>
+    <strong><%= @users_count %></strong>
+  </article>
+  <article>
+    <span>Visitors</span>
+    <strong><%= @visitors_count %></strong>
+  </article>
+  <article>
+    <span>Visitors In</span>
+    <strong><%= @checked_in_visitors_count %></strong>
+  </article>
+  <article>
+    <span>Staff</span>
+    <strong><%= @staffs_count %></strong>
+  </article>
+  <article>
+    <span>Pending Staff</span>
+    <strong><%= @pending_staffs_count %></strong>
+  </article>
+  <% if current_user.can?(:staffs, :read) %>
+    <article>
+      <span>On Duty Now</span>
+      <strong><%= @attendance_open %></strong>
+    </article>
+  <% end %>
+</section>
+
+<% if current_user.can?(:audit_logs, :read) %>
+  <section class="panel pad">
+    <div class="page-title">
+      <h2>Recent activity</h2>
+      <%= link_to "View all activity", audit_logs_path %>
+    </div>
+    <%= render "audit_logs/table", logs: @recent_activity if @recent_activity.any? %>
+  </section>
+<% end %>

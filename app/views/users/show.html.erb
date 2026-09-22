@@ -1,0 +1,33 @@
+<section class="page-title">
+  <h1><%= @user.full_name %></h1>
+  <div class="actions">
+    <%= link_to "Edit", edit_user_path(@user), class: "button" if policy(@user).edit? %>
+    <% if policy(@user).lock? && !@user.locked_out? %>
+      <%= button_to "Lock account", lock_user_path(@user), method: :post, class: "" %>
+    <% end %>
+    <% if policy(@user).unlock? && @user.locked_out? %>
+      <%= button_to "Unlock account", unlock_user_path(@user), method: :post, class: "" %>
+    <% end %>
+    <%= button_to "Deactivate", @user, method: :delete, class: "danger" if policy(@user).destroy? && @user != current_user %>
+  </div>
+</section>
+
+<dl class="details">
+  <dt>Email</dt><dd><%= @user.email %></dd>
+  <dt>Role</dt><dd><%= @user.role_label %></dd>
+  <dt>Mobile</dt><dd><%= @user.mobile.presence || "-" %></dd>
+  <dt>Status</dt><dd>
+    <%= @user.active? ? "Active" : "Inactive" %>
+    <%= "locked" if @user.locked_out? %>
+  </dd>
+  <dt>Sign in count</dt><dd><%= @user.sign_in_count %></dd>
+  <dt>Last login</dt><dd><%= @user.last_login_at&.to_fs(:long) || "-" %></dd>
+  <dt>User type</dt><dd><%= @user.user_type.presence || "-" %></dd>
+</dl>
+
+<% if @audit_logs.any? %>
+  <section class="panel pad">
+    <h2>Recent account activity</h2>
+    <%= render "audit_logs/table", logs: @audit_logs %>
+  </section>
+<% end %>

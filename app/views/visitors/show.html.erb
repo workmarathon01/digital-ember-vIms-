@@ -1,0 +1,44 @@
+<section class="page-title">
+  <h1><%= @visitor.name %></h1>
+  <div class="actions">
+    <%= link_to "Edit", edit_visitor_path(@visitor), class: "button" if policy(@visitor).edit? %>
+    <%= button_to "Revoke & archive", @visitor, method: :delete, class: "danger" if policy(@visitor).destroy? %>
+  </div>
+</section>
+
+<% if defined?(@otp) && @otp.present? %>
+  <p class="flash notice">Verification OTP: <strong class="mono"><%= @otp %></strong> — share it only with the visitor.</p>
+<% end %>
+
+<section class="split">
+  <dl class="details">
+    <dt>Pass code</dt><dd class="mono"><%= @visitor.pass_code %></dd>
+    <dt>Contact</dt><dd><%= @visitor.contact_no %></dd>
+    <dt>Purpose</dt><dd><%= @visitor.purpose.presence || "-" %></dd>
+    <dt>Coming from</dt><dd><%= @visitor.coming_from.presence || "-" %></dd>
+    <dt>Vehicle</dt><dd><%= @visitor.vehicle_number.presence || "-" %></dd>
+    <dt>Expected</dt><dd><%= [@visitor.expected_date, @visitor.expected_time&.strftime("%H:%M")].compact.join(" ") %></dd>
+    <dt>Pass window</dt><dd><%= @visitor.start_pass&.to_fs(:short) %> &rarr; <%= @visitor.end_pass&.to_fs(:short) %></dd>
+    <dt>Status</dt><dd>
+      <span class="pill <%= "ok" if @visitor.checked_in? %>"><%= @visitor.visitor_in_out.presence || "Pending" %></span>
+      <%= "expired" unless @visitor.pass_active? %>
+    </dd>
+    <dt>Verified</dt><dd><%= @visitor.verified? ? "Yes" : "No" %></dd>
+  </dl>
+
+  <div class="panel pad">
+    <h2>Gate operations</h2>
+    <% if current_user.can?(:visitors, :generate_otp) %>
+      <%= button_to "Generate OTP", generate_otp_visitor_path(@visitor), class: "button" %>
+    <% end %>
+    <% if current_user.can?(:visitors, :check_in) %>
+      <%= form_with url: check_in_visitor_path(@visitor), class: "inline-form" do |form| %>
+        <%= form.text_field :otp, placeholder: "6-digit OTP", inputmode: "numeric", required: true, autocomplete: "one-time-code" %>
+        <%= form.submit "Check in" %>
+      <% end %>
+    <% end %>
+    <% if current_user.can?(:visitors, :check_out) && @visitor.checked_in? %>
+      <%= button_to "Check out", check_out_visitor_path(@visitor), class: "button" %>
+    <% end %>
+  </div>
+</section>

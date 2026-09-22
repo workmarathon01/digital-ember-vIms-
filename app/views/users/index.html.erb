@@ -1,0 +1,45 @@
+<section class="page-title">
+  <h1>Users</h1>
+  <% if current_user.can?(:users, :create) %>
+    <%= link_to "New user", new_user_path, class: "button" %>
+  <% end %>
+</section>
+
+<%= form_with url: users_path, method: :get, class: "filters" do |form| %>
+  <label>Search <%= form.search_field :q, value: params[:q], placeholder: "Name, email, or mobile" %></label>
+  <label>Role <%= form.select :role_id, @roles.collect { |r| [ r.name, r.id ] }, include_blank: "All roles", selected: params[:role_id] %></label>
+  <%= form.submit "Filter" %>
+  <%= link_to "Clear", users_path %>
+<% end %>
+
+<section class="panel">
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Role</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @users.each do |user| %>
+        <tr>
+          <td><%= user.full_name %></td>
+          <td><%= user.email %></td>
+          <td>
+            <%= user.role_label %>
+            <% if user.locked_out? %>
+              <span class="pill danger">locked</span>
+            <% end %>
+          </td>
+          <td><%= user.active? ? "Active" : "Inactive" %></td>
+          <td><%= link_to "Open", user %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>
+
+<%= render "shared/pagination", pagy: @pagy %>

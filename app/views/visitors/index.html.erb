@@ -1,0 +1,48 @@
+<section class="page-title">
+  <h1>Visitor Passes</h1>
+  <% if current_user.can?(:visitors, :create) %>
+    <%= link_to "Issue new pass", new_visitor_path, class: "button" %>
+  <% end %>
+</section>
+
+<%= form_with url: visitors_path, method: :get, class: "filters" do |form| %>
+  <label>Search <%= form.search_field :q, value: params[:q], placeholder: "Name, contact, pass code, vehicle" %></label>
+  <label>Visit type <%= form.select :visit_type, [ "Guest", "Contractor", "Staff", "Delivery", "Other" ], include_blank: "All types", selected: params[:visit_type] %></label>
+  <label>In/Out <%= form.select :in_out, %w[IN OUT], include_blank: "Both", selected: params[:in_out] %></label>
+  <%= form.submit "Filter" %>
+  <%= link_to "Clear", visitors_path %>
+<% end %>
+
+<section class="panel">
+  <table>
+    <thead>
+      <tr>
+        <th>Pass</th>
+        <th>Name</th>
+        <th>Contact</th>
+        <th>Purpose</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @visitors.each do |visitor| %>
+        <tr>
+          <td class="mono"><%= visitor.pass_code %></td>
+          <td><%= visitor.name %></td>
+          <td><%= visitor.contact_no %></td>
+          <td><%= visitor.purpose %></td>
+          <td>
+            <span class="pill <%= "ok" if visitor.checked_in? %>"><%= visitor.visitor_in_out.presence || "Pending" %></span>
+            <% unless visitor.pass_active? %>
+              <span class="pill danger">expired</span>
+            <% end %>
+          </td>
+          <td><%= link_to "Open", visitor %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>
+
+<%= render "shared/pagination", pagy: @pagy %>

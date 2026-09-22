@@ -1,0 +1,45 @@
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  username: <%= ENV.fetch("POSTGRES_USER", "akshay") %>
+  password: <%= ENV.fetch("POSTGRES_PASSWORD", "akshay@1A") %>
+  host: <%= ENV.fetch("POSTGRES_HOST", "localhost") %>
+  port: <%= ENV.fetch("POSTGRES_PORT", 5432) %>
+
+production_default: &production_default
+  adapter: postgresql
+  encoding: unicode
+  max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  username: <%= ENV.fetch("POSTGRES_USER", "akshay") %>
+  password: <%= ENV.fetch("POSTGRES_PASSWORD", "akshay@1A") %>
+  host: <%= ENV.fetch("POSTGRES_HOST", ENV.fetch("DB_HOST", "localhost")) %>
+  port: <%= ENV.fetch("POSTGRES_PORT", 5432) %>
+
+development:
+  <<: *default
+  database: <%= ENV.fetch("POSTGRES_DB", "lect_and_nect_development") %>
+
+# Warning: The database defined as "test" will be erased and
+# re-generated from your development database when you run "rake".
+# Do not set this db to the same as development or production.
+test:
+  <<: *default
+  database: <%= ENV.fetch("POSTGRES_TEST_DB", "lect_and_nect_test") %>
+
+production:
+  primary:
+    <<: *production_default
+    database: <%= ENV.fetch("POSTGRES_DB", "lect_and_nect_production") %>
+  cache:
+    <<: *production_default
+    database: <%= ENV.fetch("POSTGRES_CACHE_DB", "lect_and_nect_production_cache") %>
+    migrations_paths: db/cache_migrate
+  queue:
+    <<: *production_default
+    database: <%= ENV.fetch("POSTGRES_QUEUE_DB", "lect_and_nect_production_queue") %>
+    migrations_paths: db/queue_migrate
+  cable:
+    <<: *production_default
+    database: <%= ENV.fetch("POSTGRES_CABLE_DB", "lect_and_nect_production_cable") %>
+    migrations_paths: db/cable_migrate

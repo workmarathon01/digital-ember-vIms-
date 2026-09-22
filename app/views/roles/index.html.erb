@@ -1,0 +1,35 @@
+<section class="page-title">
+  <h1>Roles & Permissions</h1>
+  <% if current_user.can?(:roles, :create) %>
+    <%= link_to "New role", new_role_path, class: "button" %>
+  <% end %>
+</section>
+
+<section class="panel">
+  <table>
+    <thead>
+      <tr>
+        <th>Role</th>
+        <th>Key</th>
+        <th>Level</th>
+        <th>Members</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @roles.each do |role| %>
+        <tr>
+          <td><%= role.name %></td>
+          <td class="mono"><%= role.key %></td>
+          <td><%= role.power_level %></td>
+          <td><%= role.users.count %></td>
+          <td>
+            <span class="pill <%= "ok" if role.active %>"><%= role.system? ? "system" : (role.active ? "active" : "disabled") %></span>
+          </td>
+          <td><%= link_to "Open", role %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>

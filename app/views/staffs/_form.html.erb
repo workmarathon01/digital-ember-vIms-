@@ -1,0 +1,34 @@
+<%= form_with model: staff, class: "form-grid" do |form| %>
+  <%= render "shared/errors", record: staff %>
+
+  <fieldset>
+    <legend>Identity</legend>
+    <label>First name <%= form.text_field :firstname, required: true %></label>
+    <label>Last name <%= form.text_field :lastname, required: true %></label>
+    <label>Email <%= form.email_field :email %></label>
+    <label>Mobile <%= form.telephone_field :mobile_no, required: true %></label>
+    <label>Date of birth <%= form.date_field :date_of_birth %></label>
+    <label>Joining date <%= form.date_field :joining_date %></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Assignment</legend>
+    <label>Work type <%= form.text_field :work_type, placeholder: "Housekeeping, Security, Technician…" %></label>
+    <label>Site ID <%= form.number_field :site_id %></label>
+    <label>Unit ID <%= form.number_field :unit_id %></label>
+    <label>Vendor ID <%= form.number_field :vendor_id %></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Valid window</legend>
+    <label>Valid from <%= form.datetime_local_field :valid_from %></label>
+    <label>Valid till <%= form.datetime_local_field :valid_till %></label>
+    <label>Status <%= form.select :status_type, %w[Pending Approved Rejected Suspended] %></label>
+    <label class="checkbox"><%= form.check_box :status %> Active</label>
+  </fieldset>
+
+  <div class="form-actions">
+    <%= form.submit %>
+    <%= link_to "Cancel", staffs_path %>
+  </div>
+<% end %>

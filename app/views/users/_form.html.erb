@@ -1,0 +1,35 @@
+<%= form_with model: user, class: "form-grid" do |form| %>
+  <%= render "shared/errors", record: user %>
+
+  <fieldset>
+    <legend>Identity</legend>
+    <label>First name <%= form.text_field :firstname, required: true %></label>
+    <label>Last name <%= form.text_field :lastname, required: true %></label>
+    <label>Email <%= form.email_field :email, required: true %></label>
+    <label>Mobile <%= form.telephone_field :mobile %></label>
+    <label>User type <%= form.text_field :user_type %></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Access</legend>
+    <label>Role <%= form.select :role_id, Role.active.order(:power_level).collect { |r| [ r.name, r.id ] }, include_blank: "Unassigned" %></label>
+    <% if user.persisted? %>
+      <label>Password <%= form.password_field :password, placeholder: "Leave blank to keep current password", minlength: 12 %></label>
+    <% else %>
+      <label>Password <%= form.password_field :password, required: true, minlength: 12 %></label>
+    <% end %>
+    <label class="checkbox"><%= form.check_box :active %> Active account</label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Residence</legend>
+    <label>Unit ID <%= form.number_field :unit_id %></label>
+    <label>Company ID <%= form.number_field :company_id %></label>
+    <label>Current site ID <%= form.number_field :current_site_id %></label>
+  </fieldset>
+
+  <div class="form-actions">
+    <%= form.submit %>
+    <%= link_to "Cancel", users_path %>
+  </div>
+<% end %>

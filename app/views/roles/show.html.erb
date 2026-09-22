@@ -1,0 +1,51 @@
+<section class="page-title">
+  <h1><%= @role.name %></h1>
+  <div class="actions">
+    <%= link_to "Edit", edit_role_path(@role), class: "button" if policy(@role).edit? %>
+    <% if policy(@role).destroy? && @role.users.none? %>
+      <%= button_to "Delete", @role, method: :delete, class: "danger" %>
+    <% end %>
+  </div>
+</section>
+
+<dl class="details">
+  <dt>Key</dt><dd class="mono"><%= @role.key %></dd>
+  <dt>Level</dt><dd><%= @role.power_level %></dd>
+  <dt>Description</dt><dd><%= @role.description.presence || "-" %></dd>
+  <dt>System</dt><dd><%= @role.system? ? "Yes" : "No" %></dd>
+</dl>
+
+<section class="panel pad">
+  <h2>Granted permissions</h2>
+  <% Role::RESOURCES.each do |resource| %>
+    <h3><%= resource[:label] %></h3>
+    <p>
+      <% granted = @role.permission_for?(resource) %>
+      <% if granted.empty? %>
+        <span class="muted">No access</span>
+      <% else %>
+        <% granted.each do |action| %>
+          <span class="pill ok"><%= action.titleize %></span>
+        <% end %>
+      <% end %>
+    </p>
+  <% end %>
+</section>
+
+<% if @members.any? %>
+  <section class="panel pad">
+    <h2>Members</h2>
+    <table>
+      <thead><tr><th>Name</th><th>Email</th><th></th></tr></thead>
+      <tbody>
+        <% @members.each do |member| %>
+          <tr>
+            <td><%= member.full_name %></td>
+            <td><%= member.email %></td>
+            <td><%= link_to "Open", member %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </section>
+<% end %>

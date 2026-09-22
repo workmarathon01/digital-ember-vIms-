@@ -1,0 +1,39 @@
+<%= form_with model: visitor, class: "form-grid" do |form| %>
+  <%= render "shared/errors", record: visitor %>
+
+  <fieldset>
+    <legend>Guest</legend>
+    <label>Name <%= form.text_field :name, required: true %></label>
+    <label>Contact <%= form.telephone_field :contact_no, required: true %></label>
+    <label>Purpose <%= form.text_area :purpose, rows: 3 %></label>
+    <label>Coming from <%= form.text_field :coming_from %></label>
+    <label>Vehicle number <%= form.text_field :vehicle_number %></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Visit plan</legend>
+    <label>Visit type <%= form.select :visit_type, [ "Guest", "Contractor", "Staff", "Delivery", "Other" ], include_blank: true %></label>
+    <label>Frequency <%= form.text_field :frequency, placeholder: "Once / Daily / Weekly" %></label>
+    <label>Expected date <%= form.date_field :expected_date %></label>
+    <label>Expected time <%= form.time_field :expected_time %></label>
+    <label>Building ID <%= form.number_field :building_id %></label>
+    <label>Unit ID <%= form.number_field :unit_id %></label>
+    <label>Floor ID <%= form.number_field :floor_id %></label>
+    <label>Site ID <%= form.number_field :site_id %></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Pass window</legend>
+    <label>Starts <%= form.datetime_local_field :start_pass %></label>
+    <label>Ends <%= form.datetime_local_field :end_pass %></label>
+    <label class="checkbox"><%= form.check_box :skip_host_approval %> Skip host approval</label>
+    <label class="checkbox"><%= form.check_box :goods_inwards %> Goods inwards</label>
+    <label class="checkbox"><%= form.check_box :driving_license %> Driving license on file</label>
+    <label class="checkbox"><%= form.check_box :consignment_form %> Consignment form</label>
+  </fieldset>
+
+  <div class="form-actions">
+    <%= form.submit visitor.persisted? ? "Update pass" : "Issue pass" %>
+    <%= link_to "Cancel", visitors_path %>
+  </div>
+<% end %>

@@ -1,0 +1,19 @@
+<section class="auth-shell">
+  <div>
+    <h1>Lect And Nect</h1>
+    <p>Secure access for users, visitors, and staff operations.</p>
+  </div>
+
+  <%= form_with url: session_path, class: "panel" do |form| %>
+    <h2>Sign in</h2>
+    <label>
+      Email
+      <%= form.email_field :email, required: true, autofocus: true, autocomplete: "email" %>
+    </label>
+    <label>
+      Password
+      <%= form.password_field :password, required: true, autocomplete: "current-password" %>
+    </label>
+    <%= form.submit "Sign in" %>
+  <% end %>
+</section>

@@ -1,0 +1,18 @@
+<section class="page-title">
+  <h1>Activity Log</h1>
+  <p>Every privileged action is recorded immutably for accountability.</p>
+</section>
+
+<section class="panel">
+  <%= form_with url: audit_logs_path, method: :get, class: "filters" do |form| %>
+    <label>Actor <%= form.select :actor_id, User.active.order(:firstname).collect { |u| [ u.full_name, u.id ] }, include_blank: "All actors" %></label>
+    <label>Action <%= form.select :action, %w[create update destroy sign_in sign_out].sort, include_blank: "All actions" %></label>
+    <label>Resource <%= form.select :resource_type, %w[User Visitor Staff Role StaffAttendance].sort, include_blank: "All resources" %></label>
+    <%= form.submit "Filter" %>
+    <%= link_to "Clear", audit_logs_path %>
+  <% end %>
+
+  <%= render "table", logs: @logs %>
+</section>
+
+<%= render "shared/pagination", pagy: @pagy %>

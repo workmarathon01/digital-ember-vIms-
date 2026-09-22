@@ -1,0 +1,60 @@
+<section class="page-title">
+  <h1><%= @staff.full_name %></h1>
+  <div class="actions">
+    <%= link_to "Edit", edit_staff_path(@staff), class: "button" if policy(@staff).edit? %>
+    <%= button_to "Approve", approve_staff_path(@staff), class: "button" if policy(@staff).approve? && @staff.status_type != "Approved" %>
+    <%= button_to "Suspend", suspend_staff_path(@staff), class: "danger" if policy(@staff).suspend? && @staff.status_type != "Suspended" %>
+  </div>
+</section>
+
+<section class="split">
+  <dl class="details">
+    <dt>Staff ID</dt><dd class="mono"><%= @staff.staff_id %></dd>
+    <dt>Email</dt><dd><%= @staff.email.presence || "-" %></dd>
+    <dt>Mobile</dt><dd><%= @staff.mobile_no %></dd>
+    <dt>Work type</dt><dd><%= @staff.work_type.presence || "-" %></dd>
+    <dt>Status</dt><dd><span class="pill <%= "ok" if @staff.status_type == "Approved" %>"><%= @staff.status_type %></span></dd>
+    <dt>In/Out</dt><dd><%= @staff.staff_in_out.presence || "-" %></dd>
+    <dt>Valid from</dt><dd><%= @staff.valid_from&.to_fs(:short) || "-" %></dd>
+    <dt>Valid till</dt><dd><%= @staff.valid_till&.to_fs(:short) || "-" %></dd>
+  </dl>
+
+  <div class="panel pad">
+    <h2>Attendance</h2>
+    <% if current_user.can?(:staffs, :attendance) %>
+      <% if @staff.open_attendance %>
+        <p>On duty since <strong><%= @staff.open_attendance.punched_in_at.to_fs(:short) %></strong>.</p>
+        <%= button_to "Punch out", punch_out_staff_path(@staff), class: "button" %>
+      <% else %>
+        <%= button_to "Punch in", punch_in_staff_path(@staff), class: "button" %>
+      <% end %>
+    <% end %>
+    <% if @staff.attendances.any? %>
+      <table>
+        <thead>
+          <tr><th>In</th><th>Out</th><th>Duration</th></tr>
+        </thead>
+        <tbody>
+          <% @staff.attendances.recent.each do |att| %>
+            <tr>
+              <td><%= att.punched_in_at.to_fs(:short) %></td>
+              <td><%= att.punched_out_at&.to_fs(:short) || "open" %></td>
+              <td><%= distance_of_time_in_words(att.punched_out_at - att.punched_in_at).presence if att.punched_out_at %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% end %>
+  </div>
+</section>
+
+<% if @staff.filtered_working_schedule.any? %>
+  <section class="panel pad">
+    <h2>Working schedule</h2>
+    <ul>
+      <% @staff.filtered_working_schedule.each do |day, times| %>
+        <li><strong><%= day %></strong> <%= times[:start_time] %> &rarr; <%= times[:end_time] %></li>
+      <% end %>
+    </ul>
+  </section>
+<% end %>

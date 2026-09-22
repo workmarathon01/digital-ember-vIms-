@@ -1,0 +1,45 @@
+<section class="page-title">
+  <h1>Staff</h1>
+  <% if current_user.can?(:staffs, :create) %>
+    <%= link_to "Add staff", new_staff_path, class: "button" %>
+  <% end %>
+</section>
+
+<%= form_with url: staffs_path, method: :get, class: "filters" do |form| %>
+  <label>Search <%= form.search_field :q, value: params[:q], placeholder: "Name, ID, mobile, trade" %></label>
+  <label>Status <%= form.select :status, %w[Pending Approved Rejected Suspended], include_blank: "All", selected: params[:status] %></label>
+  <label><%= form.check_box :only_approved, checked: params[:only_approved] == "1" %> Approved only</label>
+  <%= form.submit "Filter" %>
+  <%= link_to "Clear", staffs_path %>
+<% end %>
+
+<section class="panel">
+  <table>
+    <thead>
+      <tr>
+        <th>Staff ID</th>
+        <th>Name</th>
+        <th>Mobile</th>
+        <th>Work</th>
+        <th>Status</th>
+        <th>On site</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @staffs.each do |staff| %>
+        <tr>
+          <td class="mono"><%= staff.staff_id %></td>
+          <td><%= staff.full_name %></td>
+          <td><%= staff.mobile_no %></td>
+          <td><%= staff.work_type.presence || "-" %></td>
+          <td><span class="pill <%= "ok" if staff.status_type == "Approved" %>"><%= staff.status_type %></span></td>
+          <td><%= staff.staff_in_out.presence || "-" %></td>
+          <td><%= link_to "Open", staff %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>
+
+<%= render "shared/pagination", pagy: @pagy %>
