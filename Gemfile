@@ -27,7 +27,7 @@ gem "pundit", "~> 2.4"
 gem "pagy", "~> 9.0"
 
 # JSON Web Tokens for stateless API authentication
-gem "jwt", "~> 2.10"
+gem "jwt", "~> 3.3"
 
 # Cross-origin resource sharing for the React/Next frontend
 gem "rack-cors", "~> 2.0"
