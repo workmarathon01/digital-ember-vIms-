@@ -28,9 +28,15 @@ class StaffsController < ApplicationController
     @staff = Staff.new(staff_params.merge(created_by: current_user))
 
     if @staff.save
-      redirect_to @staff, notice: "Staff #{@staff.staff_id} created successfully."
+      respond_to do |format|
+        format.html { redirect_to @staff, notice: "Staff #{@staff.staff_id} created successfully." }
+        format.json { render :show, status: :created }
+      end
     else
-      render :new, status: :unprocessable_entity
+      respond_to do |format|
+        format.html { render :new, status: :unprocessable_entity }
+        format.json { render json: { error: { code: "validation_failed", message: @staff.errors.full_messages.join(", ") } }, status: :unprocessable_entity }
+      end
     end
   end
 

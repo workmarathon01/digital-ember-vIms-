@@ -29,9 +29,18 @@ class UsersController < ApplicationController
     @user = User.new(create_params)
 
     if @user.save
-      redirect_to @user, notice: "User created successfully."
+      respond_to do |format|
+        format.html { redirect_to @user, notice: "User created successfully." }
+        format.json do
+          @audit_logs = []
+          render :show, status: :created
+        end
+      end
     else
-      render :new, status: :unprocessable_entity
+      respond_to do |format|
+        format.html { render :new, status: :unprocessable_entity }
+        format.json { render json: { error: { code: "validation_failed", message: @user.errors.full_messages.join(", ") } }, status: :unprocessable_entity }
+      end
     end
   end
 

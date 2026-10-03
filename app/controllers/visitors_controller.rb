@@ -28,9 +28,15 @@ class VisitorsController < ApplicationController
     @visitor = Visitor.new(visitor_params.merge(created_by: current_user))
 
     if @visitor.save
-      redirect_to @visitor, notice: "Visitor pass #{@visitor.pass_code} issued successfully."
+      respond_to do |format|
+        format.html { redirect_to @visitor, notice: "Visitor pass #{@visitor.pass_code} issued successfully." }
+        format.json { render :show, status: :created }
+      end
     else
-      render :new, status: :unprocessable_entity
+      respond_to do |format|
+        format.html { render :new, status: :unprocessable_entity }
+        format.json { render json: { error: { code: "validation_failed", message: @visitor.errors.full_messages.join(", ") } }, status: :unprocessable_entity }
+      end
     end
   end
 
