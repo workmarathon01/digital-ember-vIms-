@@ -24,7 +24,7 @@ gem "bcrypt", "~> 3.1"
 gem "pundit", "~> 2.4"
 
 # Lightweight, speed-first pagination
-gem "pagy", "~> 9.0"
+gem "pagy", "~> 43.4"
 
 # JSON Web Tokens for stateless API authentication
 gem "jwt", "~> 2.10"
