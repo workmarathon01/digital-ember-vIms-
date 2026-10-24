@@ -1,5 +1,5 @@
 json.extract! user, :id, :email, :firstname, :lastname, :mobile, :active, :user_type,
-              :role_id, :company_id, :unit_id, :current_site_id, :user_courtesy,
+              :role_id, :company_id, :unit_id, :building_id, :floor_id, :current_site_id, :user_courtesy,
               :user_phase, :birth_date, :anniversary, :spouse_birth_date, :email_1,
               :email_2, :landline_number, :intercom_number, :user_address,
               :resident_type, :membership_type, :lives_here, :allow_fitout,
@@ -14,5 +14,17 @@ json.full_name user.full_name
 json.role_key user.role_key
 json.role_label user.role_label
 json.locked_out user.locked_out?
+json.site_name user.current_site&.name
+json.building_name user.building&.name
+json.floor_name user.floor&.name
+json.unit_name user.unit&.name
+json.residence_label user.residence_label
+
+if local_assigns[:include_features] && user.current_site.present?
+  json.feature_keys user.feature_keys
+  json.effective_features user.effective_features do |feature|
+    json.extract! feature, :id, :key, :name, :category
+  end
+end
 
 json.url user_url(user, format: :json)

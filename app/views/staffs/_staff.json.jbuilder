@@ -6,5 +6,8 @@ json.extract! staff, :id, :staff_id, :firstname, :lastname, :email, :mobile_no,
 
 json.full_name staff.full_name
 json.created_by_name staff.created_by&.full_name
+json.site_name staff.site&.name
+json.unit_name staff.unit&.name
+json.location_label staff.location_label
 
 json.url staff_url(staff, format: :json)

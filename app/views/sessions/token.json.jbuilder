@@ -4,5 +4,5 @@ json.refresh_token @refresh_token
 json.expires_in @expires_in
 
 json.user do
-  json.partial! "users/user", user: @user
+  json.partial! "users/user", user: @user, include_features: true
 end

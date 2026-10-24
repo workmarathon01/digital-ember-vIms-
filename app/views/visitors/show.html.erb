@@ -16,6 +16,7 @@
     <dt>Contact</dt><dd><%= @visitor.contact_no %></dd>
     <dt>Purpose</dt><dd><%= @visitor.purpose.presence || "-" %></dd>
     <dt>Coming from</dt><dd><%= @visitor.coming_from.presence || "-" %></dd>
+    <dt>Host location</dt><dd><%= @visitor.location_label.presence || "-" %></dd>
     <dt>Vehicle</dt><dd><%= @visitor.vehicle_number.presence || "-" %></dd>
     <dt>Expected</dt><dd><%= [@visitor.expected_date, @visitor.expected_time&.strftime("%H:%M")].compact.join(" ") %></dd>
     <dt>Pass window</dt><dd><%= @visitor.start_pass&.to_fs(:short) %> &rarr; <%= @visitor.end_pass&.to_fs(:short) %></dd>

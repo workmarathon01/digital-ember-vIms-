@@ -1,0 +1,43 @@
+<section class="page-title">
+  <div>
+    <h1>Units</h1>
+    <p class="muted">Flats, offices and other occupiable units inside the property hierarchy.</p>
+  </div>
+  <% if current_user.can?(:units, :create) %>
+    <%= link_to "New unit", new_unit_path, class: "button" %>
+  <% end %>
+</section>
+
+<%= form_with url: units_path, method: :get, class: "filters" do |form| %>
+  <label>Search <%= form.search_field :q, value: params[:q], placeholder: "Unit name or type" %></label>
+  <label>Site <%= form.select :site_id, site_options(@sites), include_blank: "All sites", selected: params[:site_id] %></label>
+  <label>Building <%= form.select :building_id, building_options(@buildings), include_blank: "All buildings", selected: params[:building_id] %></label>
+  <label>Floor <%= form.select :floor_id, floor_options(@floors), include_blank: "All floors", selected: params[:floor_id] %></label>
+  <label>Status <%= form.select :status, Unit::STATUSES.map { |status| [ status.titleize, status ] }, include_blank: "All statuses", selected: params[:status] %></label>
+  <%= form.submit "Filter" %>
+  <%= link_to "Clear", units_path %>
+<% end %>
+
+<section class="panel">
+  <table>
+    <thead>
+      <tr><th>Unit</th><th>Site</th><th>Building</th><th>Floor</th><th>Type</th><th>Status</th><th>Residents</th><th></th></tr>
+    </thead>
+    <tbody>
+      <% @units.each do |unit| %>
+        <tr>
+          <td><%= link_to unit.name, unit %></td>
+          <td><%= link_to unit.site.display_name, unit.site %></td>
+          <td><%= link_to unit.building.name, unit.building %></td>
+          <td><%= link_to unit.floor.name, unit.floor %></td>
+          <td><%= unit.unit_type.presence || "-" %></td>
+          <td><span class="pill <%= "ok" if unit.status == "active" %>"><%= unit.status.titleize %></span></td>
+          <td><%= unit.user_sites.size %></td>
+          <td><%= link_to "Open", unit %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>
+
+<%= render "shared/pagination", pagy: @pagy %>

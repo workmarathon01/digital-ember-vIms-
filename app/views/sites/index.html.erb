@@ -1,0 +1,55 @@
+<section class="page-title">
+  <div>
+    <h1>Sites &amp; Properties</h1>
+    <p class="muted">Manage the site → building → floor → unit hierarchy and the residents attached to it.</p>
+  </div>
+  <div class="actions">
+    <% if current_user.can?(:sites, :create) %>
+      <%= link_to "New site", new_site_path, class: "button" %>
+    <% end %>
+  </div>
+</section>
+
+<%= form_with url: sites_path, method: :get, class: "filters" do |form| %>
+  <label>Search <%= form.search_field :q, value: params[:q], placeholder: "Name, code, region or city" %></label>
+  <label>Status <%= form.select :status, [ [ "Active", "active" ], [ "Inactive", "inactive" ] ], include_blank: "All sites", selected: params[:status] %></label>
+  <%= form.submit "Filter" %>
+  <%= link_to "Clear", sites_path %>
+<% end %>
+
+<section class="panel">
+  <table>
+    <thead>
+      <tr>
+        <th>Site</th>
+        <th>Code</th>
+        <th>Location</th>
+        <th>Buildings</th>
+        <th>Floors</th>
+        <th>Units</th>
+        <th>Residents</th>
+        <th>Features</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @sites.each do |site| %>
+        <tr>
+          <td><%= link_to site.display_name, site %></td>
+          <td class="mono"><%= site.code %></td>
+          <td><%= [ site.city, site.state ].compact_blank.join(", ").presence || "-" %></td>
+          <td><%= site.buildings.size %></td>
+          <td><%= site.floors.size %></td>
+          <td><%= site.units.size %></td>
+          <td><%= site.user_sites.size %></td>
+          <td><%= site.site_features.size %></td>
+          <td><span class="pill <%= "ok" if site.active? %>"><%= site.active? ? "Active" : "Inactive" %></span></td>
+          <td><%= link_to "Open", site %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>
+
+<%= render "shared/pagination", pagy: @pagy %>

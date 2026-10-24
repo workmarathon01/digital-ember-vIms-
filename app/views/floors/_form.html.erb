@@ -1,0 +1,17 @@
+<%= form_with model: floor, class: "form-grid" do |form| %>
+  <%= render "shared/errors", record: floor %>
+
+  <fieldset>
+    <legend>Floor details</legend>
+    <label>Building <%= form.select :building_id, building_options(@buildings), include_blank: "Select a building", required: true %></label>
+    <label>Name <%= form.text_field :name, required: true, placeholder: "Ground Floor, 4th Floor…" %></label>
+    <label>Level <%= form.number_field :level, placeholder: "Auto-derived from the name" %></label>
+    <label>Description <%= form.text_area :description, rows: 3 %></label>
+    <p class="muted">The site is inherited from the selected building.</p>
+  </fieldset>
+
+  <div class="form-actions">
+    <%= form.submit %>
+    <%= link_to "Cancel", floor.persisted? ? floor : floors_path %>
+  </div>
+<% end %>

@@ -1,0 +1,113 @@
+<section class="page-title">
+  <div>
+    <h1><%= @site.display_name %></h1>
+    <p class="muted mono"><%= @site.code %></p>
+  </div>
+  <div class="actions">
+    <%= link_to "Edit", edit_site_path(@site), class: "button" if policy(@site).edit? %>
+    <% if current_user.can?(:buildings, :create) %>
+      <%= link_to "Add building", new_building_path(site_id: @site.id), class: "button" %>
+    <% end %>
+    <% if current_user.can?(:units, :create) && @floors.any? %>
+      <%= link_to "Add unit", new_unit_path(floor_id: @floors.first.id), class: "button" %>
+    <% end %>
+    <%= button_to "Delete", @site, method: :delete, class: "danger" if policy(@site).destroy? %>
+  </div>
+</section>
+
+<dl class="details">
+  <dt>Region</dt><dd><%= @site.region.presence || "-" %></dd>
+  <dt>Address</dt><dd><%= @site.full_address.presence || "-" %></dd>
+  <dt>Timezone</dt><dd><%= @site.timezone.presence || "-" %></dd>
+  <dt>Coordinates</dt><dd><%= [ @site.latitude, @site.longitude ].compact.join(", ").presence || "-" %></dd>
+  <dt>Status</dt><dd><span class="pill <%= "ok" if @site.active? %>"><%= @site.active? ? "Active" : "Inactive" %></span></dd>
+  <dt>Description</dt><dd><%= @site.description.presence || "-" %></dd>
+</dl>
+
+<section class="panel pad" style="margin-top: 20px;">
+  <div class="page-title">
+    <h2>Feature access</h2>
+    <%= link_to "Manage features", edit_site_path(@site) if policy(@site).edit? && current_user.can?(:site_features, :update) %>
+  </div>
+  <% if @site_features.any? %>
+    <div class="actions">
+      <% @site_features.each do |feature| %>
+        <span class="pill ok" title="<%= feature.description %>"><%= feature.name %></span>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="muted">No features are enabled for this site yet.</p>
+  <% end %>
+</section>
+
+<section class="panel pad" style="margin-top: 20px;">
+  <div class="page-title">
+    <h2>Buildings</h2>
+    <% if current_user.can?(:buildings, :create) %>
+      <%= link_to "Add building", new_building_path(site_id: @site.id) %>
+    <% end %>
+  </div>
+  <% if @buildings.any? %>
+    <table>
+      <thead><tr><th>Building</th><th>Code</th><th>Floors</th><th>Units</th><th></th></tr></thead>
+      <tbody>
+        <% @buildings.each do |building| %>
+          <tr>
+            <td><%= link_to building.name, building %></td>
+            <td class="mono"><%= building.code.presence || "-" %></td>
+            <td><%= building.floors.size %></td>
+            <td><%= building.units.size %></td>
+            <td><%= link_to "Open", building %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="muted">No buildings have been added to this site yet.</p>
+  <% end %>
+</section>
+
+<section class="panel pad" style="margin-top: 20px;">
+  <div class="page-title"><h2>Units</h2></div>
+  <% if @units.any? %>
+    <table>
+      <thead><tr><th>Unit</th><th>Floor</th><th>Type</th><th>Status</th><th>Residents</th><th></th></tr></thead>
+      <tbody>
+        <% @units.each do |unit| %>
+          <tr>
+            <td><%= link_to unit.name, unit %></td>
+            <td><%= unit.floor.name %></td>
+            <td><%= unit.unit_type.presence || "-" %></td>
+            <td><span class="pill <%= "ok" if unit.status == "active" %>"><%= unit.status.titleize %></span></td>
+            <td><%= unit.user_sites.size %></td>
+            <td><%= link_to "Open", unit %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="muted">No units have been added to this site yet.</p>
+  <% end %>
+</section>
+
+<section class="panel pad" style="margin-top: 20px;">
+  <div class="page-title"><h2>Residents</h2></div>
+  <% if @user_sites.any? %>
+    <table>
+      <thead><tr><th>Resident</th><th>Location</th><th>Ownership</th><th>Primary</th><th></th></tr></thead>
+      <tbody>
+        <% @user_sites.each do |association| %>
+          <tr>
+            <td><%= link_to association.user.full_name, association.user %></td>
+            <td><%= association.location_label %></td>
+            <td><%= association.ownership.titleize %></td>
+            <td><%= "Yes" if association.is_primary? %></td>
+            <td><%= link_to "Open", association.user %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="muted">No residents are associated with this site yet.</p>
+  <% end %>
+</section>

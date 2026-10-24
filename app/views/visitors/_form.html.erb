@@ -16,10 +16,11 @@
     <label>Frequency <%= form.text_field :frequency, placeholder: "Once / Daily / Weekly" %></label>
     <label>Expected date <%= form.date_field :expected_date %></label>
     <label>Expected time <%= form.time_field :expected_time %></label>
-    <label>Building ID <%= form.number_field :building_id %></label>
-    <label>Unit ID <%= form.number_field :unit_id %></label>
-    <label>Floor ID <%= form.number_field :floor_id %></label>
-    <label>Site ID <%= form.number_field :site_id %></label>
+    <label>Site <%= form.select :site_id, site_options(@sites), include_blank: "Unassigned" %></label>
+    <label>Building <%= form.select :building_id, building_options(@buildings), include_blank: "No building" %></label>
+    <label>Floor <%= form.select :floor_id, floor_options(@floors), include_blank: "No floor" %></label>
+    <label>Unit <%= form.select :unit_id, unit_options(@units), include_blank: "No unit" %></label>
+    <p class="muted">Selecting a unit fills the site, building and floor automatically.</p>
   </fieldset>
 
   <fieldset>

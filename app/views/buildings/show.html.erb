@@ -1,0 +1,93 @@
+<section class="page-title">
+  <div>
+    <h1><%= @building.name %></h1>
+    <p class="muted">Site: <%= link_to @building.site.display_name, @building.site %></p>
+  </div>
+  <div class="actions">
+    <%= link_to "Edit", edit_building_path(@building), class: "button" if policy(@building).edit? %>
+    <% if current_user.can?(:floors, :create) %>
+      <%= link_to "Add floor", new_floor_path(building_id: @building.id), class: "button" %>
+    <% end %>
+    <%= button_to "Delete", @building, method: :delete, class: "danger" if policy(@building).destroy? %>
+  </div>
+</section>
+
+<dl class="details">
+  <dt>Code</dt><dd class="mono"><%= @building.code.presence || "-" %></dd>
+  <dt>Site</dt><dd><%= link_to @building.site.display_name, @building.site %></dd>
+  <dt>Floors</dt><dd><%= @floors.size %></dd>
+  <dt>Units</dt><dd><%= @units.size %></dd>
+  <dt>Description</dt><dd><%= @building.description.presence || "-" %></dd>
+</dl>
+
+<section class="panel pad" style="margin-top: 20px;">
+  <div class="page-title">
+    <h2>Floors</h2>
+    <% if current_user.can?(:floors, :create) %>
+      <%= link_to "Add floor", new_floor_path(building_id: @building.id) %>
+    <% end %>
+  </div>
+  <% if @floors.any? %>
+    <table>
+      <thead><tr><th>Floor</th><th>Level</th><th>Units</th><th>Residents</th><th></th></tr></thead>
+      <tbody>
+        <% @floors.each do |floor| %>
+          <tr>
+            <td><%= link_to floor.name, floor %></td>
+            <td><%= floor.level %></td>
+            <td><%= floor.units.size %></td>
+            <td><%= floor.user_sites.size %></td>
+            <td><%= link_to "Open", floor %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="muted">No floors have been added to this building yet.</p>
+  <% end %>
+</section>
+
+<section class="panel pad" style="margin-top: 20px;">
+  <div class="page-title"><h2>Units</h2></div>
+  <% if @units.any? %>
+    <table>
+      <thead><tr><th>Unit</th><th>Floor</th><th>Type</th><th>Status</th><th>Residents</th><th></th></tr></thead>
+      <tbody>
+        <% @units.each do |unit| %>
+          <tr>
+            <td><%= link_to unit.name, unit %></td>
+            <td><%= unit.floor.name %></td>
+            <td><%= unit.unit_type.presence || "-" %></td>
+            <td><span class="pill <%= "ok" if unit.status == "active" %>"><%= unit.status.titleize %></span></td>
+            <td><%= unit.user_sites.size %></td>
+            <td><%= link_to "Open", unit %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="muted">No units have been added to this building yet.</p>
+  <% end %>
+</section>
+
+<section class="panel pad" style="margin-top: 20px;">
+  <div class="page-title"><h2>Residents</h2></div>
+  <% if @user_sites.any? %>
+    <table>
+      <thead><tr><th>Resident</th><th>Location</th><th>Ownership</th><th>Primary</th><th></th></tr></thead>
+      <tbody>
+        <% @user_sites.each do |association| %>
+          <tr>
+            <td><%= link_to association.user.full_name, association.user %></td>
+            <td><%= association.location_label %></td>
+            <td><%= association.ownership.titleize %></td>
+            <td><%= "Yes" if association.is_primary? %></td>
+            <td><%= link_to "Open", association.user %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="muted">No residents are associated with this building yet.</p>
+  <% end %>
+</section>

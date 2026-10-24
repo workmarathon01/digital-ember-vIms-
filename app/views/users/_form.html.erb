@@ -23,9 +23,10 @@
 
   <fieldset>
     <legend>Residence</legend>
-    <label>Unit ID <%= form.number_field :unit_id %></label>
+    <label>Primary site <%= form.collection_select :current_site_id, @sites, :id, :display_name, include_blank: "No site" %></label>
+    <label>Primary unit <%= form.select :unit_id, unit_options(@units), include_blank: "No unit / site-only" %></label>
+    <p class="muted">Selecting a unit automatically fills its site, building and floor. Additional residences can be managed from the user profile.</p>
     <label>Company ID <%= form.number_field :company_id %></label>
-    <label>Current site ID <%= form.number_field :current_site_id %></label>
   </fieldset>
 
   <div class="form-actions">

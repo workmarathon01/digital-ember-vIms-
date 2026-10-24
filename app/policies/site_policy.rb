@@ -1,0 +1,2 @@
+class SitePolicy < ApplicationPolicy
+end

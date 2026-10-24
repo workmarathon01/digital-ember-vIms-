@@ -21,6 +21,7 @@
         <th>Name</th>
         <th>Mobile</th>
         <th>Work</th>
+        <th>Location</th>
         <th>Status</th>
         <th>On site</th>
         <th></th>
@@ -33,6 +34,7 @@
           <td><%= staff.full_name %></td>
           <td><%= staff.mobile_no %></td>
           <td><%= staff.work_type.presence || "-" %></td>
+          <td><%= staff.location_label.presence || "-" %></td>
           <td><span class="pill <%= "ok" if staff.status_type == "Approved" %>"><%= staff.status_type %></span></td>
           <td><%= staff.staff_in_out.presence || "-" %></td>
           <td><%= link_to "Open", staff %></td>

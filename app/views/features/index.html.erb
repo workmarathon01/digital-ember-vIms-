@@ -1,0 +1,50 @@
+<section class="page-title">
+  <div>
+    <h1>Feature Catalog</h1>
+    <p class="muted">Define the modules and capabilities that sites can enable and users can inherit.</p>
+  </div>
+  <div class="actions">
+    <% if current_user.can?(:features, :create) %>
+      <%= link_to "New feature", new_feature_path, class: "button" %>
+    <% end %>
+  </div>
+</section>
+
+<%= form_with url: features_path, method: :get, class: "filters" do |form| %>
+  <label>Search <%= form.search_field :q, value: params[:q], placeholder: "Name, key or category" %></label>
+  <label>Category <%= form.select :category, Feature::CATEGORIES.map { |category| [ category.titleize, category ] }, include_blank: "All categories", selected: params[:category] %></label>
+  <label>Status <%= form.select :status, [ [ "Active", "active" ], [ "Inactive", "inactive" ] ], include_blank: "All features", selected: params[:status] %></label>
+  <%= form.submit "Filter" %>
+  <%= link_to "Clear", features_path %>
+<% end %>
+
+<section class="panel">
+  <table>
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th>Key</th>
+        <th>Category</th>
+        <th>Sites</th>
+        <th>Default</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @features.each do |feature| %>
+        <tr>
+          <td><%= link_to feature.name, feature %></td>
+          <td class="mono"><%= feature.key %></td>
+          <td><%= feature.category.titleize %></td>
+          <td><%= feature.site_features.size %></td>
+          <td><%= feature.default_enabled? ? "Enabled" : "Disabled" %></td>
+          <td><span class="pill <%= "ok" if feature.active? %>"><%= feature.active? ? "Active" : "Inactive" %></span></td>
+          <td><%= link_to "Open", feature %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>
+
+<%= render "shared/pagination", pagy: @pagy %>

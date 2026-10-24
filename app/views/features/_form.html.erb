@@ -1,0 +1,24 @@
+<%= form_with model: feature, class: "form-grid" do |form| %>
+  <%= render "shared/errors", record: feature %>
+
+  <fieldset>
+    <legend>Feature details</legend>
+    <label>Name <%= form.text_field :name, required: true %></label>
+    <label>Key <%= form.text_field :key, placeholder: "Generated from the name when blank" %></label>
+    <label>Category <%= form.select :category, Feature::CATEGORIES.map { |category| [ category.titleize, category ] } %></label>
+    <label>Icon <%= form.text_field :icon, placeholder: "Optional icon name" %></label>
+    <label>Sort order <%= form.number_field :sort_order %></label>
+    <label>Description <%= form.text_area :description, rows: 3 %></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Availability</legend>
+    <label class="checkbox"><%= form.check_box :default_enabled %> Enable by default for new sites</label>
+    <label class="checkbox"><%= form.check_box :active %> Active in the catalog</label>
+  </fieldset>
+
+  <div class="form-actions">
+    <%= form.submit %>
+    <%= link_to "Cancel", feature.persisted? ? feature : features_path %>
+  </div>
+<% end %>

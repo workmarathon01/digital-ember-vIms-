@@ -1,0 +1,45 @@
+<%= form_with model: site, class: "form-grid" do |form| %>
+  <%= render "shared/errors", record: site %>
+
+  <fieldset>
+    <legend>Site details</legend>
+    <label>Name <%= form.text_field :name, required: true %></label>
+    <label>Code <%= form.text_field :code, placeholder: "Auto-generated when blank" %></label>
+    <label>Region <%= form.text_field :region %></label>
+    <label>City <%= form.text_field :city %></label>
+    <label>State <%= form.text_field :state %></label>
+    <label>Country <%= form.text_field :country %></label>
+    <label>Postal code <%= form.text_field :postal_code %></label>
+    <label>Timezone <%= form.text_field :timezone, placeholder: "Asia/Kolkata" %></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Location &amp; status</legend>
+    <label>Address <%= form.text_field :address %></label>
+    <label>Latitude <%= form.number_field :latitude, step: 0.000001 %></label>
+    <label>Longitude <%= form.number_field :longitude, step: 0.000001 %></label>
+    <label class="checkbox"><%= form.check_box :active %> Active site</label>
+    <label>Description <%= form.text_area :description, rows: 3 %></label>
+  </fieldset>
+
+  <% if current_user.can?(:site_features, :update) && @features.any? %>
+    <fieldset>
+      <legend>Feature access</legend>
+      <p class="muted">Choose which modules and capabilities are available at this site. Users inherit these unless overridden individually.</p>
+      <%= hidden_field_tag "site[feature_ids][]", "" %>
+      <% enabled_feature_ids = site.persisted? ? site.enabled_feature_ids : @features.select(&:default_enabled?).map(&:id) %>
+      <% @features.each do |feature| %>
+        <label class="checkbox">
+          <%= check_box_tag "site[feature_ids][]", feature.id, enabled_feature_ids.include?(feature.id) %>
+          <%= feature.name %>
+          <span class="muted mono"><%= feature.key %> · <%= feature.category %></span>
+        </label>
+      <% end %>
+    </fieldset>
+  <% end %>
+
+  <div class="form-actions">
+    <%= form.submit %>
+    <%= link_to "Cancel", site.persisted? ? site : sites_path %>
+  </div>
+<% end %>

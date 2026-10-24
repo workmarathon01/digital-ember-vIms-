@@ -2,6 +2,10 @@ class Visitor < ApplicationRecord
   include Auditable
 
   belongs_to :created_by, class_name: "User", optional: true
+  belongs_to :site, optional: true
+  belongs_to :building, optional: true
+  belongs_to :floor, optional: true
+  belongs_to :unit, optional: true
 
   normalizes :contact_no, with: ->(contact_no) { contact_no.to_s.gsub(/\D/, "") }
 
@@ -16,12 +20,17 @@ class Visitor < ApplicationRecord
     where("name ILIKE :q OR contact_no ILIKE :q OR purpose ILIKE :q OR pass_code ILIKE :q OR vehicle_number ILIKE :q", q: term)
   }
 
+  before_validation :sync_location_from_unit
   before_validation :set_default_pass_window, on: :create
   before_create :generate_qr_token_digest
   before_create :assign_pass_code
 
   def checked_in?
     visitor_in_out == "IN"
+  end
+
+  def location_label
+    unit&.location_label || [ site&.display_name, building&.name, floor&.name ].compact.join(" / ")
   end
 
   def pass_active?
@@ -53,6 +62,17 @@ class Visitor < ApplicationRecord
   end
 
   private
+
+  def sync_location_from_unit
+    return if unit_id.blank?
+
+    unit_record = Unit.find_by(id: unit_id)
+    return if unit_record.blank?
+
+    self.site_id = unit_record.site_id
+    self.building_id = unit_record.building_id
+    self.floor_id = unit_record.floor_id
+  end
 
   def set_default_pass_window
     self.start_pass ||= Time.current

@@ -1,0 +1,19 @@
+<%= form_with model: unit, class: "form-grid" do |form| %>
+  <%= render "shared/errors", record: unit %>
+
+  <fieldset>
+    <legend>Unit details</legend>
+    <label>Floor <%= form.select :floor_id, floor_options(@floors), include_blank: "Select a floor", required: true %></label>
+    <label>Name / number <%= form.text_field :name, required: true, placeholder: "A-101, Office 3B…" %></label>
+    <label>Unit type <%= form.text_field :unit_type, placeholder: "1BHK, 2BHK, Office…" %></label>
+    <label>Carpet area (sq.ft.) <%= form.number_field :carpet_area, step: 0.01 %></label>
+    <label>Status <%= form.select :status, Unit::STATUSES.map { |status| [ status.titleize, status ] } %></label>
+    <label>Description <%= form.text_area :description, rows: 3 %></label>
+    <p class="muted">The site and building are inherited from the selected floor.</p>
+  </fieldset>
+
+  <div class="form-actions">
+    <%= form.submit %>
+    <%= link_to "Cancel", unit.persisted? ? unit : units_path %>
+  </div>
+<% end %>

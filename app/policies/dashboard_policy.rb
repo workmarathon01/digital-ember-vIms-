@@ -10,6 +10,8 @@ class DashboardPolicy
       user.can?(:visitors, :read) ||
       user.can?(:staffs, :read) ||
       user.can?(:users, :read) ||
+      user.can?(:sites, :read) ||
+      user.can?(:features, :read) ||
       user.can?(:roles, :read)
     )
   end

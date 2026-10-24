@@ -1,0 +1,43 @@
+<section class="page-title">
+  <div>
+    <h1><%= @unit.name %></h1>
+    <p class="muted"><%= link_to @unit.site.display_name, @unit.site %> / <%= link_to @unit.building.name, @unit.building %> / <%= link_to @unit.floor.name, @unit.floor %></p>
+  </div>
+  <div class="actions">
+    <%= link_to "Edit", edit_unit_path(@unit), class: "button" if policy(@unit).edit? %>
+    <%= button_to "Delete", @unit, method: :delete, class: "danger" if policy(@unit).destroy? %>
+  </div>
+</section>
+
+<section class="split">
+  <dl class="details">
+    <dt>Site</dt><dd><%= link_to @unit.site.display_name, @unit.site %></dd>
+    <dt>Building</dt><dd><%= link_to @unit.building.name, @unit.building %></dd>
+    <dt>Floor</dt><dd><%= link_to @unit.floor.name, @unit.floor %></dd>
+    <dt>Type</dt><dd><%= @unit.unit_type.presence || "-" %></dd>
+    <dt>Carpet area</dt><dd><%= @unit.carpet_area.present? ? "#{@unit.carpet_area} sq.ft." : "-" %></dd>
+    <dt>Status</dt><dd><span class="pill <%= "ok" if @unit.status == "active" %>"><%= @unit.status.titleize %></span></dd>
+    <dt>Description</dt><dd><%= @unit.description.presence || "-" %></dd>
+  </dl>
+
+  <div class="panel pad">
+    <h2>Residents</h2>
+    <% if @user_sites.any? %>
+      <table>
+        <thead><tr><th>Resident</th><th>Ownership</th><th>Primary</th><th></th></tr></thead>
+        <tbody>
+          <% @user_sites.each do |association| %>
+            <tr>
+              <td><%= link_to association.user.full_name, association.user %></td>
+              <td><%= association.ownership.titleize %></td>
+              <td><%= "Yes" if association.is_primary? %></td>
+              <td><%= link_to "Open", association.user %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <p class="muted">No residents are associated with this unit yet.</p>
+    <% end %>
+  </div>
+</section>

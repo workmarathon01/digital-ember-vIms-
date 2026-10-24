@@ -11,5 +11,10 @@ json.extract! visitor, :id, :name, :contact_no, :purpose, :pass_code, :pass_numb
 json.checked_in visitor.checked_in?
 json.pass_active visitor.pass_active?
 json.created_by_name visitor.created_by&.full_name
+json.site_name visitor.site&.name
+json.building_name visitor.building&.name
+json.floor_name visitor.floor&.name
+json.unit_name visitor.unit&.name
+json.location_label visitor.location_label
 
 json.url visitor_url(visitor, format: :json)

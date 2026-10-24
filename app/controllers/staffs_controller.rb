@@ -1,9 +1,10 @@
 class StaffsController < ApplicationController
   before_action :set_staff, only: %i[show edit update destroy approve suspend punch_in punch_out]
+  before_action :load_property_options, only: %i[new create edit update]
 
   def index
     authorize Staff
-    @staffs = policy_scope(Staff).includes(:created_by)
+    @staffs = policy_scope(Staff).includes(:created_by, :site, :unit)
     @staffs = @staffs.search(params[:q]) if params[:q].present?
     @staffs = @staffs.where(status_type: params[:status]) if params[:status].present?
     @staffs = @staffs.approved if params[:only_approved] == "1"
@@ -92,5 +93,10 @@ class StaffsController < ApplicationController
       :status_type, :date_of_birth, :staff_in_out, :joining_date, :unit_id,
       working_schedule: Date::DAYNAMES.index_with([ :selected, :start_time, :end_time ])
     )
+  end
+
+  def load_property_options
+    @sites = Site.active.order(:name)
+    @units = Unit.includes(:site, :building, :floor).order("sites.name", "buildings.name", "floors.level", "units.name")
   end
 end

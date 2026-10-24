@@ -3,6 +3,14 @@ class Role < ApplicationRecord
 
   RESOURCES = [
     { key: "users", label: "Users", actions: %w[read create update deactivate lock assign_roles] },
+    { key: "features", label: "Feature Catalog", actions: %w[read create update destroy] },
+    { key: "site_features", label: "Site Feature Access", actions: %w[read update] },
+    { key: "user_features", label: "User Feature Access", actions: %w[read update] },
+    { key: "sites", label: "Sites", actions: %w[read create update destroy] },
+    { key: "buildings", label: "Buildings", actions: %w[read create update destroy] },
+    { key: "floors", label: "Floors", actions: %w[read create update destroy] },
+    { key: "units", label: "Units", actions: %w[read create update destroy] },
+    { key: "user_sites", label: "Resident Assignments", actions: %w[read create update destroy] },
     { key: "visitors", label: "Visitors", actions: %w[read create update destroy check_in check_out generate_otp export] },
     { key: "staffs", label: "Staff", actions: %w[read create update destroy approve suspend attendance export] },
     { key: "roles", label: "Roles", actions: %w[read create update destroy permissions] },

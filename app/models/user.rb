@@ -7,6 +7,17 @@ class User < ApplicationRecord
   has_secure_password
 
   belongs_to :role, optional: true
+  belongs_to :current_site, class_name: "Site", foreign_key: :current_site_id, optional: true
+  belongs_to :building, optional: true
+  belongs_to :floor, optional: true
+  belongs_to :unit, optional: true
+
+  has_many :user_sites, dependent: :destroy, inverse_of: :user
+  has_many :sites, through: :user_sites
+  has_one :primary_user_site, -> { where(is_primary: true) }, class_name: "UserSite", inverse_of: :user
+
+  has_many :user_features, dependent: :destroy, inverse_of: :user
+  has_many :feature_overrides, through: :user_features, source: :feature
 
   has_many :created_visitors, class_name: "Visitor", foreign_key: :created_by_id, dependent: :nullify
   has_many :created_staffs, class_name: "Staff", foreign_key: :created_by_id, dependent: :nullify
@@ -14,9 +25,12 @@ class User < ApplicationRecord
   normalizes :email, with: ->(email) { email.to_s.strip.downcase }
   normalizes :mobile, with: ->(mobile) { mobile.to_s.gsub(/\D/, "") }
 
+  before_validation :sync_residence_from_unit
+  after_create :ensure_primary_residence
+
   validates :email, presence: true, uniqueness: { case_sensitive: false }, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :firstname, :lastname, presence: true
-  validates :password, length: { minimum: 8 }, allow_nil: true
+  validates :password, length: { minimum: 12 }, allow_nil: true
   validates :mobile, length: { minimum: 10, maximum: 15 }, allow_blank: true
 
   scope :active, -> { where(active: true) }
@@ -28,6 +42,80 @@ class User < ApplicationRecord
 
   def full_name
     [ firstname, lastname ].compact_blank.join(" ")
+  end
+
+  def residence_label
+    [ current_site&.name, building&.name, floor&.name, unit&.name ].compact.join(" / ")
+  end
+
+  alias site_label residence_label
+
+  # Features are inherited from the user's current site. A user-level override
+  # can grant or revoke an entitlement, but grants remain constrained to
+  # features the site already exposes.
+  def effective_features(site = current_site)
+    site = Site.find_by(id: site) if site.is_a?(Integer)
+    return Feature.none if site.blank?
+
+    base_ids = site.enabled_features.pluck(:id)
+    overrides = user_features.where(site_id: site.id).pluck(:feature_id, :enabled)
+    granted_ids = overrides.select { |_feature_id, enabled| enabled }.map(&:first)
+    revoked_ids = overrides.reject { |_feature_id, enabled| enabled }.map(&:first)
+
+    Feature.active.where(id: (base_ids | granted_ids) - revoked_ids).ordered
+  end
+
+  def feature_keys(site = current_site)
+    effective_features(site).pluck(:key)
+  end
+
+  def feature_enabled?(feature, site = current_site)
+    feature = Feature.resolve(feature)
+    return false if feature.blank?
+
+    effective_features(site).exists?(id: feature.id)
+  end
+
+  def feature_override_state(feature, site = current_site)
+    feature = Feature.resolve(feature)
+    site = Site.find_by(id: site) if site.is_a?(Integer)
+    return "inherit" if feature.blank? || site.blank?
+
+    override = user_features.find_by(site_id: site.id, feature_id: feature.id)
+    return "inherit" if override.blank?
+
+    override.enabled? ? "granted" : "revoked"
+  end
+
+  # Overrides accept "granted", "revoked" or "inherit" per feature id.
+  # Unknown features and features that are not enabled at the site are ignored.
+  def sync_feature_overrides!(site, overrides, actor: nil)
+    site = Site.find_by(id: site) if site.is_a?(Integer)
+    raise ArgumentError, "A site is required" if site.blank?
+
+    allowed_features = site.enabled_features.index_by(&:id)
+
+    transaction do
+      (overrides || {}).each do |feature_id, state|
+        feature = allowed_features[feature_id.to_i]
+        next if feature.blank?
+
+        normalized = normalize_override_state(state)
+        if normalized == "inherit"
+          user_features.where(site_id: site.id, feature_id: feature.id).destroy_all
+          next
+        end
+
+        override = user_features.find_or_initialize_by(site_id: site.id, feature_id: feature.id)
+        override.enabled = normalized == "granted"
+        override.granted_by = actor
+        override.save!
+      end
+
+      user_features.where(site_id: site.id)
+                   .where.not(feature_id: allowed_features.keys)
+                   .find_each(&:destroy!)
+    end
   end
 
   def role_key
@@ -104,5 +192,44 @@ class User < ApplicationRecord
 
   def self.digest(value)
     OpenSSL::HMAC.hexdigest("SHA256", Rails.application.key_generator.generate_key("otp-digest"), value.to_s)
+  end
+
+  private
+
+  def normalize_override_state(state)
+    case state.to_s
+    when "granted", "grant", "true", "1" then "granted"
+    when "revoked", "revoke", "false", "0" then "revoked"
+    else "inherit"
+    end
+  end
+
+  def sync_residence_from_unit
+    return if unit_id.blank?
+
+    unit_record = Unit.find_by(id: unit_id)
+    return if unit_record.blank?
+
+    self.building_id = unit_record.building_id
+    self.floor_id = unit_record.floor_id
+    self.current_site_id = unit_record.site_id
+  end
+
+  def ensure_primary_residence
+    return if unit_id.blank? || user_sites.exists?
+
+    unit_record = Unit.find_by(id: unit_id)
+    return if unit_record.blank?
+
+    user_sites.create!(
+      site: unit_record.site,
+      building: unit_record.building,
+      floor: unit_record.floor,
+      unit: unit_record,
+      ownership: "owner",
+      is_primary: true,
+      lives_here: true,
+      is_approved: true
+    )
   end
 end

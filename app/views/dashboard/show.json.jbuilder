@@ -1,4 +1,6 @@
 json.users_count @users_count
+json.sites_count @sites_count
+json.units_count @units_count
 json.visitors_count @visitors_count
 json.checked_in_visitors_count @checked_in_visitors_count
 json.staffs_count @staffs_count

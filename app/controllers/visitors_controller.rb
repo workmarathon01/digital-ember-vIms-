@@ -1,9 +1,10 @@
 class VisitorsController < ApplicationController
   before_action :set_visitor, only: %i[show edit update destroy generate_otp check_in check_out]
+  before_action :load_property_options, only: %i[new create edit update]
 
   def index
     authorize Visitor
-    @visitors = policy_scope(Visitor).active.includes(:created_by)
+    @visitors = policy_scope(Visitor).active.includes(:created_by, :site, :unit)
     @visitors = @visitors.search(params[:q]) if params[:q].present?
     @visitors = @visitors.where(visit_type: params[:visit_type]) if params[:visit_type].present?
     @visitors = @visitors.where(visitor_in_out: params[:in_out]) if params[:in_out].present?
@@ -98,5 +99,12 @@ class VisitorsController < ApplicationController
       :driving_license, :consignment_form, :qr_pending_expiry_minutes, :start_date,
       :end_date, :no_of_goods, :is_synced_with_hardware, working_days: []
     )
+  end
+
+  def load_property_options
+    @sites = Site.active.order(:name)
+    @buildings = Building.includes(:site).order("sites.name", :name)
+    @floors = Floor.includes(:site, :building).order("sites.name", "buildings.name", :level, :name)
+    @units = Unit.includes(:site, :building, :floor).order("sites.name", "buildings.name", "floors.level", "units.name")
   end
 end

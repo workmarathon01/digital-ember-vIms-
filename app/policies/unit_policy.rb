@@ -1,0 +1,2 @@
+class UnitPolicy < ApplicationPolicy
+end

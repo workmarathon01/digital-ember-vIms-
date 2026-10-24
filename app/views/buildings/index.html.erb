@@ -1,0 +1,39 @@
+<section class="page-title">
+  <div>
+    <h1>Buildings</h1>
+    <p class="muted">Buildings belong to a site. Each building contains floors and units.</p>
+  </div>
+  <% if current_user.can?(:buildings, :create) %>
+    <%= link_to "New building", new_building_path, class: "button" %>
+  <% end %>
+</section>
+
+<%= form_with url: buildings_path, method: :get, class: "filters" do |form| %>
+  <label>Search <%= form.search_field :q, value: params[:q], placeholder: "Building name or code" %></label>
+  <label>Site <%= form.select :site_id, site_options(@sites), include_blank: "All sites", selected: params[:site_id] %></label>
+  <%= form.submit "Filter" %>
+  <%= link_to "Clear", buildings_path %>
+<% end %>
+
+<section class="panel">
+  <table>
+    <thead>
+      <tr><th>Building</th><th>Site</th><th>Code</th><th>Floors</th><th>Units</th><th>Residents</th><th></th></tr>
+    </thead>
+    <tbody>
+      <% @buildings.each do |building| %>
+        <tr>
+          <td><%= link_to building.name, building %></td>
+          <td><%= link_to building.site.display_name, building.site %></td>
+          <td class="mono"><%= building.code.presence || "-" %></td>
+          <td><%= building.floors.size %></td>
+          <td><%= building.units.size %></td>
+          <td><%= building.user_sites.size %></td>
+          <td><%= link_to "Open", building %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>
+
+<%= render "shared/pagination", pagy: @pagy %>

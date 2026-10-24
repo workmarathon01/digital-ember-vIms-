@@ -23,7 +23,112 @@
   <dt>Sign in count</dt><dd><%= @user.sign_in_count %></dd>
   <dt>Last login</dt><dd><%= @user.last_login_at&.to_fs(:long) || "-" %></dd>
   <dt>User type</dt><dd><%= @user.user_type.presence || "-" %></dd>
+  <dt>Residence</dt><dd><%= @user.residence_label.presence || "-" %></dd>
 </dl>
+
+<section class="panel pad" style="margin-top: 20px;">
+  <div class="page-title">
+    <h2>Residences</h2>
+    <% if current_user.can?(:user_sites, :create) %>
+      <span class="muted">Site, building, floor and unit assignments for this person.</span>
+    <% end %>
+  </div>
+
+  <% if @user_sites.any? %>
+    <table>
+      <thead>
+        <tr><th>Location</th><th>Ownership</th><th>Lives here</th><th>Approved</th><th>Since</th><th></th></tr>
+      </thead>
+      <tbody>
+        <% @user_sites.each do |association| %>
+          <tr>
+            <td>
+              <%= association.location_label %>
+              <% if association.is_primary? %><span class="pill ok">primary</span><% end %>
+            </td>
+            <td><%= association.ownership.titleize %></td>
+            <td><%= association.lives_here? ? "Yes" : "No" %></td>
+            <td><%= association.is_approved? ? "Yes" : "Pending" %></td>
+            <td><%= association.move_in_date&.to_fs(:short) || "-" %></td>
+            <td>
+              <div class="actions">
+                <% if current_user.can?(:user_sites, :update) && !association.is_primary? %>
+                  <%= button_to "Make primary", make_primary_user_site_path(association), method: :post, class: "" %>
+                <% end %>
+                <% if current_user.can?(:user_sites, :destroy) %>
+                  <%= button_to "Remove", user_site_path(association), method: :delete, class: "danger" %>
+                <% end %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="muted">No residence is associated with this user yet.</p>
+  <% end %>
+
+  <% if current_user.can?(:user_sites, :create) %>
+    <h3>Associate a residence</h3>
+    <%= form_with model: UserSite.new, url: user_sites_path, class: "form-grid" do |form| %>
+      <%= form.hidden_field :user_id, value: @user.id %>
+      <label>Site <%= form.collection_select :site_id, @sites, :id, :display_name, include_blank: "Derived from unit" %></label>
+      <label>Unit <%= form.select :unit_id, unit_options(@units), include_blank: "No specific unit" %></label>
+      <label>Ownership <%= form.select :ownership, UserSite::OWNERSHIPS.map { |ownership| [ ownership.titleize, ownership ] } %></label>
+      <label>Move-in date <%= form.date_field :move_in_date %></label>
+      <label class="checkbox"><%= form.check_box :is_primary %> Primary residence</label>
+      <label class="checkbox"><%= form.check_box :lives_here, checked: true %> Lives here</label>
+      <label class="checkbox"><%= form.check_box :is_approved %> Approved</label>
+      <div class="form-actions">
+        <%= form.submit "Associate residence" %>
+      </div>
+    <% end %>
+  <% end %>
+</section>
+
+<section class="panel pad">
+  <div class="page-title">
+    <h2>Feature access</h2>
+    <% if @feature_site.present? %>
+      <span class="muted">Inherited from <%= link_to @feature_site.display_name, @feature_site %></span>
+    <% end %>
+  </div>
+
+  <% if @feature_site.blank? %>
+    <p class="muted">Assign a primary site to manage feature access.</p>
+  <% elsif @available_features.empty? %>
+    <p class="muted">No features are enabled for this user's site.</p>
+  <% else %>
+    <div class="actions" style="margin-bottom: 16px;">
+      <% @available_features.each do |feature| %>
+        <span class="pill <%= "ok" if @effective_feature_ids.include?(feature.id) %>" title="<%= feature.description %>">
+          <%= feature.name %><%= " (revoked)" unless @effective_feature_ids.include?(feature.id) %>
+        </span>
+      <% end %>
+    </div>
+
+    <% if current_user.can?(:user_features, :update) %>
+      <h3>Overrides</h3>
+      <p class="muted">Inherit keeps the site default. Grant records explicit access. Revoke removes the feature for this user only.</p>
+      <%= form_with url: user_features_path(@user), method: :patch, class: "form-grid" do |form| %>
+        <%= hidden_field_tag :site_id, @feature_site.id %>
+        <% @available_features.each do |feature| %>
+          <label>
+            <%= feature.name %>
+            <%= select_tag "overrides[#{feature.id}]",
+                           options_for_select([ [ "Inherit from site", "inherit" ],
+                                                [ "Grant explicitly", "granted" ],
+                                                [ "Revoke for user", "revoked" ] ],
+                                              @override_states[feature.id] || "inherit") %>
+          </label>
+        <% end %>
+        <div class="form-actions">
+          <%= form.submit "Update feature access" %>
+        </div>
+      <% end %>
+    <% end %>
+  <% end %>
+</section>
 
 <% if @audit_logs.any? %>
   <section class="panel pad">

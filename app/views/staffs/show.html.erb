@@ -13,6 +13,7 @@
     <dt>Email</dt><dd><%= @staff.email.presence || "-" %></dd>
     <dt>Mobile</dt><dd><%= @staff.mobile_no %></dd>
     <dt>Work type</dt><dd><%= @staff.work_type.presence || "-" %></dd>
+    <dt>Location</dt><dd><%= @staff.location_label.presence || "-" %></dd>
     <dt>Status</dt><dd><span class="pill <%= "ok" if @staff.status_type == "Approved" %>"><%= @staff.status_type %></span></dd>
     <dt>In/Out</dt><dd><%= @staff.staff_in_out.presence || "-" %></dd>
     <dt>Valid from</dt><dd><%= @staff.valid_from&.to_fs(:short) || "-" %></dd>

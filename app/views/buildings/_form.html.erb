@@ -1,0 +1,16 @@
+<%= form_with model: building, class: "form-grid" do |form| %>
+  <%= render "shared/errors", record: building %>
+
+  <fieldset>
+    <legend>Building details</legend>
+    <label>Site <%= form.select :site_id, site_options(@sites), include_blank: "Select a site", required: true %></label>
+    <label>Name <%= form.text_field :name, required: true %></label>
+    <label>Code <%= form.text_field :code, placeholder: "Auto-generated when blank" %></label>
+    <label>Description <%= form.text_area :description, rows: 3 %></label>
+  </fieldset>
+
+  <div class="form-actions">
+    <%= form.submit %>
+    <%= link_to "Cancel", building.persisted? ? building : buildings_path %>
+  </div>
+<% end %>

@@ -1,0 +1,38 @@
+<section class="page-title">
+  <div>
+    <h1><%= @feature.name %></h1>
+    <p class="muted mono"><%= @feature.key %></p>
+  </div>
+  <div class="actions">
+    <%= link_to "Edit", edit_feature_path(@feature), class: "button" if policy(@feature).edit? %>
+    <%= link_to "Back to catalog", features_path %>
+  </div>
+</section>
+
+<dl class="details">
+  <dt>Category</dt><dd><%= @feature.category.titleize %></dd>
+  <dt>Default state</dt><dd><%= @feature.default_enabled? ? "Enabled" : "Disabled" %></dd>
+  <dt>Status</dt><dd><span class="pill <%= "ok" if @feature.active? %>"><%= @feature.active? ? "Active" : "Inactive" %></span></dd>
+  <dt>Sort order</dt><dd><%= @feature.sort_order %></dd>
+  <dt>Description</dt><dd><%= @feature.description.presence || "-" %></dd>
+</dl>
+
+<section class="panel pad" style="margin-top: 20px;">
+  <div class="page-title"><h2>Sites using this feature</h2></div>
+  <% if @sites.any? %>
+    <table>
+      <thead><tr><th>Site</th><th>Code</th><th></th></tr></thead>
+      <tbody>
+        <% @sites.each do |site| %>
+          <tr>
+            <td><%= link_to site.display_name, site %></td>
+            <td class="mono"><%= site.code %></td>
+            <td><%= link_to "Open", site %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="muted">This feature is not enabled for any site yet.</p>
+  <% end %>
+</section>

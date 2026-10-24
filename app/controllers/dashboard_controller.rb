@@ -3,6 +3,8 @@ class DashboardController < ApplicationController
     authorize :dashboard, :view?
 
     @users_count = policy_scope(User).count
+    @sites_count = current_user.can?(:sites, :read) ? policy_scope(Site).count : 0
+    @units_count = current_user.can?(:units, :read) ? policy_scope(Unit).count : 0
     @visitors_count = policy_scope(Visitor).active.count
     @checked_in_visitors_count = policy_scope(Visitor).checked_in.count
     @staffs_count = policy_scope(Staff).count

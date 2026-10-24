@@ -15,6 +15,23 @@ Rails.application.routes.draw do
       post :lock
       post :unlock
     end
+    resource :features, only: %i[show update], controller: "user_features", as: :features
+  end
+
+  resources :features
+
+  resources :sites do
+    resource :features, only: %i[show update], controller: "site_features", as: :features
+  end
+
+  resources :buildings
+  resources :floors
+  resources :units
+
+  resources :user_sites, only: %i[index create destroy] do
+    member do
+      post :make_primary
+    end
   end
 
   resources :visitors do

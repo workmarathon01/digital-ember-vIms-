@@ -2,10 +2,14 @@ class Staff < ApplicationRecord
   include Auditable
 
   belongs_to :created_by, class_name: "User", optional: true
+  belongs_to :site, optional: true
+  belongs_to :unit, optional: true
   has_many :attendances, class_name: "StaffAttendance", dependent: :destroy
 
   normalizes :email, with: ->(email) { email.to_s.strip.downcase }
   normalizes :mobile_no, with: ->(mobile_no) { mobile_no.to_s.gsub(/\D/, "") }
+
+  before_validation :sync_site_from_unit
 
   validates :firstname, :lastname, :mobile_no, presence: true
   validates :mobile_no, uniqueness: { scope: :site_id }, length: { minimum: 10, maximum: 15 }
@@ -25,6 +29,10 @@ class Staff < ApplicationRecord
 
   def full_name
     [ firstname, lastname ].compact_blank.join(" ")
+  end
+
+  def location_label
+    unit&.location_label || site&.display_name
   end
 
   def approve!
@@ -55,6 +63,13 @@ class Staff < ApplicationRecord
   end
 
   private
+
+  def sync_site_from_unit
+    return if unit_id.blank?
+
+    unit_record = Unit.find_by(id: unit_id)
+    self.site_id = unit_record.site_id if unit_record.present?
+  end
 
   def set_defaults
     self.status_type ||= "Pending"
