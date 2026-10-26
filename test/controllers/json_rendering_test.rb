@@ -12,6 +12,11 @@ class JsonRenderingTest < ActionDispatch::IntegrationTest
       password: "StrongPass!2026", role: role
     )
     @visitor = Visitor.create!(name: "Jane Visitor", contact_no: "9876543210", created_by: @admin)
+    @visitor.profile_image.attach(
+      io: StringIO.new(File.binread(Rails.root.join("test/fixtures/files/profile.png"))),
+      filename: "profile.png",
+      content_type: "image/png"
+    )
     @staff = Staff.create!(firstname: "John", lastname: "Staff", mobile_no: "9876500000", created_by: @admin)
     sign_in
   end
@@ -35,10 +40,53 @@ class JsonRenderingTest < ActionDispatch::IntegrationTest
     get visitors_path(format: :json), headers: auth_headers
     assert_json_ok
     assert response.parsed_body.key?("meta")
+    assert response.parsed_body.dig("visitors", 0, "qr_token").present?
 
     get visitor_path(@visitor, format: :json), headers: auth_headers
     assert_json_ok
     assert_equal @visitor.id, response.parsed_body["id"]
+    assert response.parsed_body["qr_token"].present?
+    assert response.parsed_body["profile_image_url"].present?
+  end
+
+  test "staff can create a visitor with a profile photo using a multipart request" do
+    assert_difference("Visitor.count", 1) do
+      post visitors_path(format: :json), headers: auth_headers, params: {
+        visitor: {
+          name: "Photo Visitor",
+          contact_no: "9876500099",
+          profile_image: fixture_file_upload("profile.png", "image/png")
+        }
+      }
+    end
+
+    assert_response :created
+    assert response.parsed_body.dig("profile_image_url").present?
+    assert Visitor.order(:created_at).last.profile_image.attached?
+  end
+
+  test "new visitor form includes profile photo and host fields" do
+    post session_path, params: { email: @admin.email, password: "StrongPass!2026" }
+
+    get new_visitor_path
+
+    assert_response :success
+    assert_select "input[type='file'][name='visitor[profile_image]']"
+    assert_select "select[name='visitor[vhost_id]']"
+  end
+
+  test "visitor pages render the uploaded profile photo" do
+    post session_path, params: { email: @admin.email, password: "StrongPass!2026" }
+
+    get visitor_path(@visitor)
+
+    assert_response :success
+    assert_select "img.profile-photo"
+
+    get visitors_path
+
+    assert_response :success
+    assert_select "img.avatar"
   end
 
   test "staffs index and show render json" do

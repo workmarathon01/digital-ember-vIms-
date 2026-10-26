@@ -1,10 +1,16 @@
-<%= form_with model: visitor, class: "form-grid" do |form| %>
+<%= form_with model: visitor, class: "form-grid", data: { controller: "visitor-host", visitor_host_url_value: public_hosts_path, visitor_host_selected_value: visitor.vhost_id } do |form| %>
   <%= render "shared/errors", record: visitor %>
 
   <fieldset>
     <legend>Guest</legend>
     <label>Name <%= form.text_field :name, required: true %></label>
     <label>Contact <%= form.telephone_field :contact_no, required: true %></label>
+    <label>Profile photo
+      <% if visitor.profile_image.attached? %>
+        <span><%= image_tag url_for(visitor.profile_image), alt: "Current profile photo", class: "profile-photo" %></span>
+      <% end %>
+      <%= form.file_field :profile_image, accept: "image/jpeg,image/png,image/webp", capture: "user" %>
+    </label>
     <label>Purpose <%= form.text_area :purpose, rows: 3 %></label>
     <label>Coming from <%= form.text_field :coming_from %></label>
     <label>Vehicle number <%= form.text_field :vehicle_number %></label>
@@ -19,8 +25,9 @@
     <label>Site <%= form.select :site_id, site_options(@sites), include_blank: "Unassigned" %></label>
     <label>Building <%= form.select :building_id, building_options(@buildings), include_blank: "No building" %></label>
     <label>Floor <%= form.select :floor_id, floor_options(@floors), include_blank: "No floor" %></label>
-    <label>Unit <%= form.select :unit_id, unit_options(@units), include_blank: "No unit" %></label>
-    <p class="muted">Selecting a unit fills the site, building and floor automatically.</p>
+    <label>Unit <%= form.select :unit_id, unit_options(@units), { include_blank: "No unit" }, { data: { visitor_host_target: "unit", action: "change->visitor-host#refresh" } } %></label>
+    <label>Host / Resident <%= form.select :vhost_id, (@hosts || []).map { |host| [ host.full_name, host.id ] }, { include_blank: "Select host" }, { data: { visitor_host_target: "host" } } %></label>
+    <p class="muted">Selecting a unit narrows the host list to residents linked to that unit. Site, building and floor are filled automatically.</p>
   </fieldset>
 
   <fieldset>

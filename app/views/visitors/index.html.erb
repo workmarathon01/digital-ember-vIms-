@@ -29,7 +29,14 @@
       <% @visitors.each do |visitor| %>
         <tr>
           <td class="mono"><%= visitor.pass_code %></td>
-          <td><%= visitor.name %></td>
+          <td>
+            <span class="person-cell">
+              <% if visitor.profile_image.attached? %>
+                <%= image_tag url_for(visitor.profile_image), alt: "", class: "avatar" %>
+              <% end %>
+              <span><%= visitor.name %></span>
+            </span>
+          </td>
           <td><%= visitor.contact_no %></td>
           <td><%= visitor.purpose %></td>
           <td>

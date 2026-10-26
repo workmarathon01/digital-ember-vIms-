@@ -38,8 +38,27 @@ class FeatureAccessTest < ActionDispatch::IntegrationTest
     post session_path(format: :json), params: { email: @admin.email, password: PASSWORD }
 
     assert_response :success
+    assert_equal true, response.parsed_body.dig("user", "features_configured")
     assert_includes response.parsed_body.dig("user", "feature_keys"), "visitor_management"
     assert_not_includes response.parsed_body.dig("user", "feature_keys"), "reports"
+  end
+
+  test "login marks features as unconfigured when the catalog is empty" do
+    Feature.update_all(active: false)
+
+    post session_path(format: :json), params: { email: @admin.email, password: PASSWORD }
+
+    assert_response :success
+    assert_equal false, response.parsed_body.dig("user", "features_configured")
+    assert_empty response.parsed_body.dig("user", "feature_keys")
+  end
+
+  test "standard feature templates are available to feature readers" do
+    get feature_templates_path(format: :json), headers: auth_headers
+
+    assert_response :success
+    assert response.parsed_body.any? { |template| template["key"] == "property_management" }
+    assert response.parsed_body.any? { |template| template["key"] == "visitor_management" }
   end
 
   test "admin can create update and delete a feature" do

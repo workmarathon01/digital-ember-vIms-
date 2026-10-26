@@ -4,7 +4,7 @@ class VisitorsController < ApplicationController
 
   def index
     authorize Visitor
-    @visitors = policy_scope(Visitor).active.includes(:created_by, :site, :unit)
+    @visitors = policy_scope(Visitor).active.includes(:created_by, :site, :unit, :vhost, profile_image_attachment: :blob)
     @visitors = @visitors.search(params[:q]) if params[:q].present?
     @visitors = @visitors.where(visit_type: params[:visit_type]) if params[:visit_type].present?
     @visitors = @visitors.where(visitor_in_out: params[:in_out]) if params[:in_out].present?
@@ -97,7 +97,7 @@ class VisitorsController < ApplicationController
       :visitor_staff_category_id, :parking_slot, :visitor_in_out, :vhost_id, :verified,
       :pass_start_date, :pass_end_date, :building_id, :unit_id, :floor_id, :parent_id,
       :driving_license, :consignment_form, :qr_pending_expiry_minutes, :start_date,
-      :end_date, :no_of_goods, :is_synced_with_hardware, working_days: []
+      :end_date, :no_of_goods, :is_synced_with_hardware, :profile_image, working_days: []
     )
   end
 
@@ -106,5 +106,6 @@ class VisitorsController < ApplicationController
     @buildings = Building.includes(:site).order("sites.name", :name)
     @floors = Floor.includes(:site, :building).order("sites.name", "buildings.name", :level, :name)
     @units = Unit.includes(:site, :building, :floor).order("sites.name", "buildings.name", "floors.level", "units.name")
+    @hosts = User.active.includes(:role).order(:firstname, :lastname)
   end
 end

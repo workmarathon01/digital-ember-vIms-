@@ -20,10 +20,16 @@ json.floor_name user.floor&.name
 json.unit_name user.unit&.name
 json.residence_label user.residence_label
 
-if local_assigns[:include_features] && user.current_site.present?
-  json.feature_keys user.feature_keys
-  json.effective_features user.effective_features do |feature|
-    json.extract! feature, :id, :key, :name, :category
+if local_assigns[:include_features]
+  # When the catalog is empty (for example before seeds run), the frontend
+  # should not hide every feature-gated menu item. feature_keys is only
+  # emitted when the user has a current site, so it remains nil otherwise.
+  json.features_configured Feature.active.exists?
+  if user.current_site.present?
+    json.feature_keys user.feature_keys
+    json.effective_features user.effective_features do |feature|
+      json.extract! feature, :id, :key, :name, :category
+    end
   end
 end
 

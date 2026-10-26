@@ -18,6 +18,8 @@ Rails.application.routes.draw do
     resource :features, only: %i[show update], controller: "user_features", as: :features
   end
 
+  get "features/templates", to: "features#templates", as: :feature_templates
+
   resources :features
 
   resources :sites do
@@ -40,6 +42,17 @@ Rails.application.routes.draw do
       post :check_in
       post :check_out
     end
+  end
+
+  # Unauthenticated endpoints for visitor self-registration and QR check-in.
+  # Keep this namespace limited to actions that are safe for the public kiosk.
+  namespace :public do
+    get "visitors/lookup", to: "visitors#lookup", as: :visitor_lookup
+    get "visitors/verify", to: "visitors#verify", as: :visitor_verify
+    post "visitors/check_in", to: "visitors#check_in", as: :visitor_check_in
+    post "visitors", to: "visitors#create", as: :visitors
+    get "hosts", to: "visitors#hosts", as: :hosts
+    get "form_options", to: "visitors#form_options", as: :form_options
   end
 
   resources :staffs do

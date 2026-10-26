@@ -105,32 +105,7 @@ second_unit.save!
 # Feature catalog
 # ══════════════════════════════════════════════════════════════════════════
 
-feature_catalog = [
-  { key: "visitor_management", name: "Visitor Management", category: "operations", icon: "clipboard-list",
-    sort_order: 10, default_enabled: true,
-    description: "Pre-registration, gate passes, OTP check-in and visitor history." },
-  { key: "staff_management", name: "Staff Management", category: "operations", icon: "users",
-    sort_order: 20, default_enabled: true,
-    description: "Staff directory, approvals, shifts and attendance." },
-  { key: "property_management", name: "Properties & Residents", category: "operations", icon: "building",
-    sort_order: 30, default_enabled: true,
-    description: "Site, building, floor and unit hierarchy with resident associations." },
-  { key: "gate_passes", name: "Gate Passes & OTP", category: "security", icon: "key-round",
-    sort_order: 40, default_enabled: true,
-    description: "Pass-code and OTP verification for gate operations." },
-  { key: "kiosk_mode", name: "Kiosk Check-in", category: "security", icon: "monitor-smartphone",
-    sort_order: 50, default_enabled: true,
-    description: "Self-service visitor check-in at a shared kiosk." },
-  { key: "audit_trail", name: "Audit Trail", category: "platform", icon: "scroll-text",
-    sort_order: 60, default_enabled: true,
-    description: "Immutable activity history for security and compliance." },
-  { key: "reports", name: "Reports & Analytics", category: "reporting", icon: "bar-chart",
-    sort_order: 70, default_enabled: true,
-    description: "Operational reporting and occupancy insights." },
-  { key: "user_management", name: "Users & Roles", category: "platform", icon: "user-cog",
-    sort_order: 80, default_enabled: true,
-    description: "User accounts, role assignments and access control." }
-]
+feature_catalog = Feature::STANDARD_TEMPLATES
 
 features = feature_catalog.map do |attrs|
   Feature.find_or_initialize_by(key: attrs[:key]).tap do |feature|

@@ -1,19 +1,35 @@
-<%= form_with model: feature, class: "form-grid" do |form| %>
+<%= form_with model: feature,
+             class: "form-grid",
+             data: feature.new_record? && @available_templates.present? ? {
+               controller: "feature-template",
+               feature_template_templates_value: @available_templates.to_json
+             } : {} do |form| %>
   <%= render "shared/errors", record: feature %>
+
+  <% if feature.new_record? && @available_templates.present? %>
+    <label class="full">
+      Standard feature
+      <%= select_tag "feature_template",
+                     options_for_select(@available_templates.map { |template| [ template[:name], template[:key] ] }),
+                     include_blank: "Custom feature",
+                     data: { feature_template_target: "select", action: "change->feature-template#apply" } %>
+      <span class="muted">Choose a standard capability to fill the name and key consistently, or keep “Custom feature”.</span>
+    </label>
+  <% end %>
 
   <fieldset>
     <legend>Feature details</legend>
-    <label>Name <%= form.text_field :name, required: true %></label>
-    <label>Key <%= form.text_field :key, placeholder: "Generated from the name when blank" %></label>
-    <label>Category <%= form.select :category, Feature::CATEGORIES.map { |category| [ category.titleize, category ] } %></label>
-    <label>Icon <%= form.text_field :icon, placeholder: "Optional icon name" %></label>
-    <label>Sort order <%= form.number_field :sort_order %></label>
-    <label>Description <%= form.text_area :description, rows: 3 %></label>
+    <label>Name <%= form.text_field :name, required: true, data: { feature_template_target: "name" } %></label>
+    <label>Key <%= form.text_field :key, placeholder: "Generated from the name when blank", data: { feature_template_target: "key" } %></label>
+    <label>Category <%= form.select :category, Feature::CATEGORIES.map { |category| [ category.titleize, category ] }, {}, data: { feature_template_target: "category" } %></label>
+    <label>Icon <%= form.text_field :icon, placeholder: "Optional icon name", data: { feature_template_target: "icon" } %></label>
+    <label>Sort order <%= form.number_field :sort_order, data: { feature_template_target: "sortOrder" } %></label>
+    <label>Description <%= form.text_area :description, rows: 3, data: { feature_template_target: "description" } %></label>
   </fieldset>
 
   <fieldset>
     <legend>Availability</legend>
-    <label class="checkbox"><%= form.check_box :default_enabled %> Enable by default for new sites</label>
+    <label class="checkbox"><%= form.check_box :default_enabled, data: { feature_template_target: "defaultEnabled" } %> Enable by default for new sites</label>
     <label class="checkbox"><%= form.check_box :active %> Active in the catalog</label>
   </fieldset>
 

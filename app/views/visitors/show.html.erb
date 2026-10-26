@@ -12,10 +12,19 @@
 
 <section class="split">
   <dl class="details">
+    <dt>Profile photo</dt>
+    <dd>
+      <% if @visitor.profile_image.attached? %>
+        <%= image_tag url_for(@visitor.profile_image), alt: "Profile photo of #{@visitor.name}", class: "profile-photo" %>
+      <% else %>
+        -
+      <% end %>
+    </dd>
     <dt>Pass code</dt><dd class="mono"><%= @visitor.pass_code %></dd>
     <dt>Contact</dt><dd><%= @visitor.contact_no %></dd>
     <dt>Purpose</dt><dd><%= @visitor.purpose.presence || "-" %></dd>
     <dt>Coming from</dt><dd><%= @visitor.coming_from.presence || "-" %></dd>
+    <dt>Host</dt><dd><%= @visitor.host_name.presence || "-" %></dd>
     <dt>Host location</dt><dd><%= @visitor.location_label.presence || "-" %></dd>
     <dt>Vehicle</dt><dd><%= @visitor.vehicle_number.presence || "-" %></dd>
     <dt>Expected</dt><dd><%= [@visitor.expected_date, @visitor.expected_time&.strftime("%H:%M")].compact.join(" ") %></dd>

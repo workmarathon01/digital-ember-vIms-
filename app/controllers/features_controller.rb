@@ -1,5 +1,11 @@
 class FeaturesController < ApplicationController
   before_action :set_feature, only: %i[show edit update destroy]
+  before_action :load_available_templates, only: %i[new create]
+
+  def templates
+    authorize Feature, :index?
+    render json: Feature::STANDARD_TEMPLATES
+  end
 
   def index
     authorize Feature
@@ -79,6 +85,11 @@ class FeaturesController < ApplicationController
 
   def set_feature
     @feature = Feature.find(params[:id])
+  end
+
+  def load_available_templates
+    existing_keys = Feature.where(key: Feature::STANDARD_TEMPLATES.map { |template| template[:key] }).pluck(:key)
+    @available_templates = Feature::STANDARD_TEMPLATES.reject { |template| existing_keys.include?(template[:key]) }
   end
 
   def feature_params

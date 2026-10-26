@@ -40,6 +40,15 @@ class User < ApplicationRecord
     where("firstname ILIKE :q OR lastname ILIKE :q OR email ILIKE :q OR mobile ILIKE :q", q: term)
   }
 
+  # Hosts available for a unit: residents explicitly linked through user_sites
+  # plus users whose primary unit is the selected unit.
+  def self.hosts_for_unit(unit_id)
+    active.where(
+      "users.unit_id = :unit_id OR users.id IN (SELECT user_id FROM user_sites WHERE unit_id = :unit_id)",
+      unit_id: unit_id
+    ).includes(:role).order(:firstname, :lastname)
+  end
+
   def full_name
     [ firstname, lastname ].compact_blank.join(" ")
   end
