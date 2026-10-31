@@ -2,8 +2,10 @@ require "test_helper"
 
 class AccessControlTest < ActionDispatch::IntegrationTest
   def setup
-    @admin = create_role_and_user(:admin, "Admin User", "admin@example.test", 100)
+    @super_admin = create_role_and_user(:super_admin, "Super Admin", "super-admin@example.test", 100)
+    @admin = create_role_and_user(:admin, "Admin User", "admin@example.test", 90)
     @security = create_role_and_user(:security, "Security User", "security@example.test", 60)
+    @gate_security = create_role_and_user(:gate_security, "Gate Security", "gate-security@example.test", 50)
   end
 
   def create_role_and_user(key, name, email, level)
@@ -12,9 +14,21 @@ class AccessControlTest < ActionDispatch::IntegrationTest
       r.power_level = level
       r.is_system = true
     end
-    if key == :security
-      %w[read].each { |a| role.permissions.find_or_create_by!(resource: "visitors", action: a) }
+
+    case key
+    when :admin
+      grant_admin_permissions(role)
+    when :security
+      role.permissions.find_or_create_by!(resource: "visitors", action: "read")
+    when :gate_security
+      %w[read create update check_in check_out generate_otp].each do |action|
+        role.permissions.find_or_create_by!(resource: "visitors", action: action)
+      end
+      %w[read create update approve suspend attendance].each do |action|
+        role.permissions.find_or_create_by!(resource: "staffs", action: action)
+      end
     end
+
     User.create!(
       firstname: name.split.first,
       lastname: "Tester",
@@ -22,6 +36,15 @@ class AccessControlTest < ActionDispatch::IntegrationTest
       password: "StrongPass!2026",
       role: role
     )
+  end
+
+  def grant_admin_permissions(role)
+    Role::RESOURCES.each do |resource|
+      actions = resource[:key] == "roles" ? %w[read] : resource[:actions]
+      actions.each do |action|
+        role.permissions.find_or_create_by!(resource: resource[:key], action: action)
+      end
+    end
   end
 
   def sign_in(email)
@@ -32,6 +55,22 @@ class AccessControlTest < ActionDispatch::IntegrationTest
     get visitors_path
 
     assert_redirected_to new_session_path
+  end
+
+  test "json login exposes role permissions and super admin bypasses checks" do
+    post session_path(format: :json), params: { email: @security.email, password: "StrongPass!2026" }
+
+    assert_response :success
+    permissions = response.parsed_body.dig("user", "permissions")
+    assert_includes permissions, "visitors:read"
+    assert_not_includes permissions, "users:read"
+
+    post session_path(format: :json), params: { email: @super_admin.email, password: "StrongPass!2026" }
+
+    assert_response :success
+    permissions = response.parsed_body.dig("user", "permissions")
+    assert_includes permissions, "roles:destroy"
+    assert_includes permissions, "users:assign_roles"
   end
 
   test "security user can view visitors but not users" do
@@ -55,6 +94,61 @@ class AccessControlTest < ActionDispatch::IntegrationTest
 
     get audit_logs_path
     assert_response :success
+  end
+
+  test "admin can view roles but cannot edit them" do
+    sign_in(@admin.email)
+
+    get roles_path
+    assert_response :success
+
+    role = Role.create!(name: "Concierge", key: "concierge", power_level: 50)
+    get edit_role_path(role)
+    assert_redirected_to root_path
+  end
+
+  test "admin cannot assign the super admin role" do
+    sign_in(@admin.email)
+
+    post users_path, params: {
+      user: {
+        firstname: "Sneaky", lastname: "Admin", email: "sneaky@example.test",
+        password: "StrongPass!2026", role_id: @super_admin.role_id
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_nil User.find_by(email: "sneaky@example.test")
+  end
+
+  test "admin cannot view a super admin account" do
+    sign_in(@admin.email)
+
+    get user_path(@super_admin)
+    assert_redirected_to root_path
+  end
+
+  test "dashboard hides counts for resources the role cannot read" do
+    post session_path(format: :json), params: { email: @gate_security.email, password: "StrongPass!2026" }
+    token = response.parsed_body.fetch("access_token")
+
+    get root_path(format: :json), headers: { "Authorization" => "Bearer #{token}" }
+
+    assert_response :success
+    assert_equal 0, response.parsed_body["users_count"]
+  end
+
+  test "gate security can manage visitors and staff but not users" do
+    sign_in(@gate_security.email)
+
+    get visitors_path
+    assert_response :success
+
+    get staffs_path
+    assert_response :success
+
+    get users_path
+    assert_redirected_to root_path
   end
 
   test "denied access is redirected and reported via flash" do
@@ -119,7 +213,7 @@ class AccessControlTest < ActionDispatch::IntegrationTest
   end
 
   test "role permission matrix is rebuilt on update" do
-    sign_in(@admin.email)
+    sign_in(@super_admin.email)
 
     role = Role.create!(name: "Guard", key: "guard_custom", power_level: 40)
     put role_path(role), params: {

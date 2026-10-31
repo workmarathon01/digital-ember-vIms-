@@ -2,8 +2,8 @@ require "test_helper"
 
 class JsonRenderingTest < ActionDispatch::IntegrationTest
   def setup
-    role = Role.find_or_create_by!(key: "admin") do |r|
-      r.name = "Admin User"
+    role = Role.find_or_create_by!(key: "super_admin") do |r|
+      r.name = "Super Administrator"
       r.power_level = 100
       r.is_system = true
     end
@@ -105,6 +105,65 @@ class JsonRenderingTest < ActionDispatch::IntegrationTest
     get user_path(@admin, format: :json), headers: auth_headers
     assert_json_ok
     assert response.parsed_body.key?("audit_logs")
+  end
+
+  test "users index paginates ten records per page" do
+    get users_path(format: :json), headers: auth_headers
+
+    assert_json_ok
+    assert_equal 10, response.parsed_body.dig("meta", "limit")
+  end
+
+  test "staff can create a user with a profile photo using a multipart request" do
+    assert_difference("User.count", 1) do
+      post users_path(format: :json), headers: auth_headers, params: {
+        user: {
+          firstname: "Photo",
+          lastname: "User",
+          email: "photo-user@example.test",
+          password: "StrongPass!2026",
+          profile_image: fixture_file_upload("profile.png", "image/png")
+        }
+      }
+    end
+
+    assert_response :created
+    assert response.parsed_body["profile_image_url"].present?
+    assert User.find_by(email: "photo-user@example.test").profile_image.attached?
+  end
+
+  test "staff can update a user with a profile photo using a multipart request" do
+    user = User.create!(
+      firstname: "Edit", lastname: "Target", email: "edit-target@example.test",
+      password: "StrongPass!2026"
+    )
+
+    patch user_path(user, format: :json), headers: auth_headers, params: {
+      user: {
+        firstname: "Updated",
+        profile_image: fixture_file_upload("profile.png", "image/png")
+      }
+    }
+
+    assert_response :success
+    assert_equal "Updated", user.reload.firstname
+    assert user.profile_image.attached?
+    assert response.parsed_body["profile_image_url"].present?
+  end
+
+  test "staff can toggle a user active status with a json request" do
+    user = User.create!(
+      firstname: "Toggle", lastname: "Target", email: "toggle-target@example.test",
+      password: "StrongPass!2026"
+    )
+
+    patch user_path(user, format: :json), headers: auth_headers, params: {
+      user: { active: false }
+    }
+
+    assert_response :success
+    assert_not user.reload.active
+    assert_equal false, response.parsed_body["active"]
   end
 
   test "roles index and show render json" do

@@ -14,8 +14,20 @@ Rails.application.routes.draw do
     member do
       post :lock
       post :unlock
+      post :approve_registration
+      post :reject_registration
+    end
+    collection do
+      get :pending_registrations
     end
     resource :features, only: %i[show update], controller: "user_features", as: :features
+  end
+
+  # Public employee onboarding. Anyone with the link can submit a registration;
+  # an administrator or super admin must approve it before the account works.
+  namespace :public do
+    get "employee_registrations/options", to: "employee_registrations#options", as: :employee_registration_options
+    post "employee_registrations", to: "employee_registrations#create", as: :employee_registrations
   end
 
   get "features/templates", to: "features#templates", as: :feature_templates

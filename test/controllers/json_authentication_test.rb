@@ -4,8 +4,8 @@ class JsonAuthenticationTest < ActionDispatch::IntegrationTest
   PASSWORD = "StrongPass!2026".freeze
 
   def setup
-    role = Role.find_or_create_by!(key: "admin") do |r|
-      r.name = "Admin User"
+    role = Role.find_or_create_by!(key: "super_admin") do |r|
+      r.name = "Super Administrator"
       r.power_level = 100
       r.is_system = true
     end

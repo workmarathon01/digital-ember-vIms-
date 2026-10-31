@@ -7,12 +7,20 @@
     <label>Last name <%= form.text_field :lastname, required: true %></label>
     <label>Email <%= form.email_field :email, required: true %></label>
     <label>Mobile <%= form.telephone_field :mobile %></label>
-    <label>User type <%= form.text_field :user_type %></label>
+    <label>User type <%= form.select :user_type, @assignable_roles.pluck(:name) | [ user.user_type ].compact, include_blank: "Unassigned" %></label>
+    <label>
+      Profile photo
+      <% if user.profile_image.attached? %>
+        <span><%= image_tag url_for(user.profile_image), alt: "Current profile photo", class: "profile-photo" %></span>
+      <% end %>
+      <%= form.file_field :profile_image, accept: "image/jpeg,image/png,image/webp", capture: "user" %>
+      <span class="muted">Upload a JPG, PNG or WebP image, or use the camera on a mobile device.</span>
+    </label>
   </fieldset>
 
   <fieldset>
     <legend>Access</legend>
-    <label>Role <%= form.select :role_id, Role.active.order(:power_level).collect { |r| [ r.name, r.id ] }, include_blank: "Unassigned" %></label>
+    <label>Role <%= form.select :role_id, @assignable_roles.collect { |r| [ r.name, r.id ] }, include_blank: "Unassigned" %></label>
     <% if user.persisted? %>
       <label>Password <%= form.password_field :password, placeholder: "Leave blank to keep current password", minlength: 12 %></label>
     <% else %>

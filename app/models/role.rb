@@ -1,8 +1,8 @@
 class Role < ApplicationRecord
-  SYSTEM_KEYS = %w[admin security staff resident].freeze
+  SYSTEM_KEYS = %w[super_admin admin security gate_security staff resident].freeze
 
   RESOURCES = [
-    { key: "users", label: "Users", actions: %w[read create update deactivate lock assign_roles] },
+    { key: "users", label: "Users", actions: %w[read create update deactivate lock assign_roles approve reject] },
     { key: "features", label: "Feature Catalog", actions: %w[read create update destroy] },
     { key: "site_features", label: "Site Feature Access", actions: %w[read update] },
     { key: "user_features", label: "User Feature Access", actions: %w[read update] },
@@ -35,7 +35,15 @@ class Role < ApplicationRecord
   scope :active, -> { where(active: true) }
 
   def super_admin?
+    key == "super_admin"
+  end
+
+  def admin?
     key == "admin"
+  end
+
+  def gate_security?
+    key == "gate_security"
   end
 
   def system?

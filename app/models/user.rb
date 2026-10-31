@@ -4,9 +4,15 @@ class User < ApplicationRecord
   MAX_FAILED_ATTEMPTS = 5
   LOCKOUT_DURATION = 30.minutes
 
+  PROFILE_IMAGE_TYPES = %w[image/jpeg image/png image/webp].freeze
+  PROFILE_IMAGE_MAX_BYTES = 5.megabytes
+  REGISTRATION_STATUSES = %w[pending approved rejected].freeze
+
   has_secure_password
+  has_one_attached :profile_image
 
   belongs_to :role, optional: true
+  belongs_to :reviewed_by, class_name: "User", foreign_key: :reviewed_by_id, optional: true
   belongs_to :current_site, class_name: "Site", foreign_key: :current_site_id, optional: true
   belongs_to :building, optional: true
   belongs_to :floor, optional: true
@@ -32,8 +38,12 @@ class User < ApplicationRecord
   validates :firstname, :lastname, presence: true
   validates :password, length: { minimum: 12 }, allow_nil: true
   validates :mobile, length: { minimum: 10, maximum: 15 }, allow_blank: true
+  validates :registration_status, inclusion: { in: REGISTRATION_STATUSES }
+  validate :acceptable_profile_image
+  validate :pending_registration_cannot_be_activated, on: :update
 
   scope :active, -> { where(active: true) }
+  scope :pending_registration, -> { where(registration_status: "pending") }
   scope :with_role, -> { includes(:role) }
   scope :search, lambda { |q|
     term = "%#{q.to_s.strip}%"
@@ -135,20 +145,76 @@ class User < ApplicationRecord
     role&.name || "Unassigned"
   end
 
+  def pending_registration?
+    registration_status == "pending"
+  end
+
+  def approved_registration?
+    registration_status == "approved"
+  end
+
+  def rejected_registration?
+    registration_status == "rejected"
+  end
+
+  # Self-registered employees stay inactive until an administrator approves
+  # them. Approval assigns the default staff role when no role was set, so the
+  # new employee can use the modules their role allows without an extra step.
+  def approve_registration!(reviewer, note: nil)
+    assign_attributes(
+      registration_status: "approved",
+      active: true,
+      is_admin_approved: true,
+      user_status: true,
+      reviewed_by: reviewer,
+      reviewed_at: Time.current,
+      registration_note: note.presence
+    )
+    self.role ||= Role.find_by(key: "staff")
+    save!
+  end
+
+  def reject_registration!(reviewer, note: nil)
+    assign_attributes(
+      registration_status: "rejected",
+      active: false,
+      is_admin_approved: false,
+      user_status: false,
+      reviewed_by: reviewer,
+      reviewed_at: Time.current,
+      registration_note: note.presence
+    )
+    save!
+  end
+
   def super_admin?
-    role_key == "admin"
+    role_key == "super_admin"
   end
 
   def admin?
-    super_admin?
+    role_key == "admin"
+  end
+
+  def gate_security?
+    role_key == "gate_security"
   end
 
   def security?
-    role_key == "security"
+    %w[security gate_security].include?(role_key)
   end
 
   def can?(resource, action)
     super_admin? || role&.can?(resource, action)
+  end
+
+  def permission_keys
+    if super_admin?
+      Role::RESOURCES.flat_map do |resource|
+        resource[:actions].map { |action| "#{resource[:key]}:#{action}" }
+      end
+    else
+      role&.permissions&.pluck(:resource, :action)&.map { |resource, action| "#{resource}:#{action}" } || []
+    end
   end
 
   def locked_out?
@@ -204,6 +270,24 @@ class User < ApplicationRecord
   end
 
   private
+
+  def acceptable_profile_image
+    return unless profile_image.attached?
+
+    unless PROFILE_IMAGE_TYPES.include?(profile_image.blob.content_type)
+      errors.add(:profile_image, "must be a JPEG, PNG or WebP image")
+    end
+
+    return unless profile_image.blob.byte_size > PROFILE_IMAGE_MAX_BYTES
+
+    errors.add(:profile_image, "must be smaller than 5 MB")
+  end
+
+  def pending_registration_cannot_be_activated
+    return unless pending_registration? && active? && will_save_change_to_active?
+
+    errors.add(:active, "cannot be enabled until the employee registration is approved")
+  end
 
   def normalize_override_state(state)
     case state.to_s

@@ -5,6 +5,64 @@
   <% end %>
 </section>
 
+<section class="panel pad" id="pending-registrations" style="margin-bottom: 20px;">
+  <div class="page-title">
+    <div>
+      <h2>Pending employee registrations</h2>
+      <p class="muted">Self-registered employees cannot sign in until an administrator or super admin approves them.</p>
+    </div>
+    <%= link_to "View all pending", pending_registrations_users_path, class: "button" %>
+  </div>
+
+  <% if @pending_registrations.present? %>
+    <table>
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>Contact</th>
+          <th>Work location</th>
+          <th>Submitted</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @pending_registrations.each do |pending_user| %>
+          <tr>
+            <td>
+              <span class="person-cell">
+                <% if pending_user.profile_image.attached? %>
+                  <%= image_tag url_for(pending_user.profile_image), alt: "", class: "avatar" %>
+                <% end %>
+                <%= pending_user.full_name %>
+              </span>
+              <span class="muted"><%= pending_user.position.presence || "Employee" %></span>
+            </td>
+            <td>
+              <%= pending_user.email %>
+              <span class="muted"><%= pending_user.mobile.presence || "-" %></span>
+            </td>
+            <td><%= pending_user.current_site&.display_name || "-" %></td>
+            <td><%= pending_user.registration_submitted_at&.to_fs(:short) || pending_user.created_at.to_fs(:short) %></td>
+            <td>
+              <div class="actions">
+                <%= link_to "Review", user_path(pending_user), class: "button" %>
+                <% if policy(pending_user).approve? %>
+                  <%= button_to "Approve", approve_registration_user_path(pending_user), method: :post, class: "button" %>
+                <% end %>
+                <% if policy(pending_user).reject? %>
+                  <%= button_to "Reject", reject_registration_user_path(pending_user), method: :post, class: "danger" %>
+                <% end %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="muted">No employee registrations are waiting for approval.</p>
+  <% end %>
+</section>
+
 <%= form_with url: users_path, method: :get, class: "filters" do |form| %>
   <label>Search <%= form.search_field :q, value: params[:q], placeholder: "Name, email, or mobile" %></label>
   <label>Role <%= form.select :role_id, @roles.collect { |r| [ r.name, r.id ] }, include_blank: "All roles", selected: params[:role_id] %></label>
@@ -26,7 +84,14 @@
     <tbody>
       <% @users.each do |user| %>
         <tr>
-          <td><%= user.full_name %></td>
+          <td>
+            <span class="person-cell">
+              <% if user.profile_image.attached? %>
+                <%= image_tag url_for(user.profile_image), alt: "", class: "avatar" %>
+              <% end %>
+              <%= user.full_name %>
+            </span>
+          </td>
           <td><%= user.email %></td>
           <td>
             <%= user.role_label %>

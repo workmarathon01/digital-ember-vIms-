@@ -7,7 +7,16 @@ class SessionsController < ApplicationController
   end
 
   def create
-    user = User.active.find_by(email: params[:email].to_s.strip.downcase)
+    email = params[:email].to_s.strip.downcase
+    candidate = User.find_by(email: email)
+
+    # Give self-registered employees a useful message instead of the generic
+    # invalid-credentials response while their registration is being reviewed.
+    if candidate.present? && !candidate.approved_registration?
+      return failed_registration(candidate)
+    end
+
+    user = User.active.find_by(email: email)
 
     if user.nil?
       return failed_attempt
@@ -92,6 +101,21 @@ class SessionsController < ApplicationController
         render :new, status: :unprocessable_entity
       end
       format.json { render json: { error: { code: "invalid_credentials", message: message } }, status: :unauthorized }
+    end
+  end
+
+  def failed_registration(user)
+    if user.rejected_registration?
+      code = "registration_rejected"
+      message = "Your employee registration was not approved. Please contact an administrator."
+    else
+      code = "registration_pending"
+      message = "Your employee registration is awaiting administrator approval."
+    end
+
+    respond_to do |format|
+      format.html { redirect_to new_session_path, alert: message }
+      format.json { render json: { error: { code: code, message: message } }, status: :forbidden }
     end
   end
 

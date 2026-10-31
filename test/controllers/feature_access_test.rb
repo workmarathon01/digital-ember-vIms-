@@ -4,8 +4,8 @@ class FeatureAccessTest < ActionDispatch::IntegrationTest
   PASSWORD = "StrongPass!2026".freeze
 
   def setup
-    @admin_role = Role.find_or_create_by!(key: "admin") do |role|
-      role.name = "System Administrator"
+    @admin_role = Role.find_or_create_by!(key: "super_admin") do |role|
+      role.name = "Super Administrator"
       role.power_level = 100
       role.is_system = true
     end
@@ -41,6 +41,16 @@ class FeatureAccessTest < ActionDispatch::IntegrationTest
     assert_equal true, response.parsed_body.dig("user", "features_configured")
     assert_includes response.parsed_body.dig("user", "feature_keys"), "visitor_management"
     assert_not_includes response.parsed_body.dig("user", "feature_keys"), "reports"
+  end
+
+  test "login emits an empty feature list when the user has no current site" do
+    @admin.update!(current_site: nil)
+
+    post session_path(format: :json), params: { email: @admin.email, password: PASSWORD }
+
+    assert_response :success
+    assert_equal true, response.parsed_body.dig("user", "features_configured")
+    assert_equal [], response.parsed_body.dig("user", "feature_keys")
   end
 
   test "login marks features as unconfigured when the catalog is empty" do

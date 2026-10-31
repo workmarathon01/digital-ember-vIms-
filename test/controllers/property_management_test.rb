@@ -4,8 +4,8 @@ class PropertyManagementTest < ActionDispatch::IntegrationTest
   PASSWORD = "StrongPass!2026".freeze
 
   def setup
-    @admin_role = Role.find_or_create_by!(key: "admin") do |role|
-      role.name = "System Administrator"
+    @admin_role = Role.find_or_create_by!(key: "super_admin") do |role|
+      role.name = "Super Administrator"
       role.power_level = 100
       role.is_system = true
     end

@@ -13,7 +13,7 @@
   <% if role.persisted? %>
     <fieldset>
       <legend>Permissions</legend>
-      <p class="muted">Tick the actions each resource grants this role. The System Administrator role is always all-access.</p>
+      <p class="muted">Tick the actions each resource grants this role. The Super Administrator role is always all-access.</p>
       <% Role::RESOURCES.each do |resource| %>
         <div class="permission-group">
           <h3><%= resource[:label] %></h3>

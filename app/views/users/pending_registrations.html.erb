@@ -1,0 +1,59 @@
+<section class="page-title">
+  <div>
+    <h1>Pending employee registrations</h1>
+    <p class="muted">Approve or reject self-registered employee accounts. Approved employees can sign in immediately.</p>
+  </div>
+  <%= link_to "Back to users", users_path, class: "button" %>
+</section>
+
+<section class="panel">
+  <% if @pending_registrations.any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>Email</th>
+          <th>Mobile</th>
+          <th>Position</th>
+          <th>Work location</th>
+          <th>Submitted</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @pending_registrations.each do |pending_user| %>
+          <tr>
+            <td>
+              <span class="person-cell">
+                <% if pending_user.profile_image.attached? %>
+                  <%= image_tag url_for(pending_user.profile_image), alt: "", class: "avatar" %>
+                <% end %>
+                <%= pending_user.full_name %>
+              </span>
+            </td>
+            <td><%= pending_user.email %></td>
+            <td><%= pending_user.mobile.presence || "-" %></td>
+            <td><%= pending_user.position.presence || "-" %></td>
+            <td><%= pending_user.current_site&.display_name || "-" %></td>
+            <td><%= pending_user.registration_submitted_at&.to_fs(:short) || pending_user.created_at.to_fs(:short) %></td>
+            <td>
+              <div class="actions">
+                <%= link_to "Review", user_path(pending_user), class: "button" %>
+                <% if policy(pending_user).approve? %>
+                  <%= button_to "Approve", approve_registration_user_path(pending_user), method: :post, class: "button" %>
+                <% end %>
+                <% if policy(pending_user).reject? %>
+                  <%= button_to "Reject", reject_registration_user_path(pending_user), method: :post, class: "danger" %>
+                <% end %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="muted">No employee registrations are waiting for approval.</p>
+  <% end %>
+</section>
+
+<%= render "shared/pagination", pagy: @pagy %>

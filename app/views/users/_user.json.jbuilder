@@ -8,11 +8,16 @@ json.extract! user, :id, :email, :firstname, :lastname, :mobile, :active, :user_
               :organization_id, :blood_group, :profession, :location, :sub_location,
               :start_date, :end_date, :date_of_joining, :sign_in_count,
               :current_sign_in_at, :last_sign_in_at, :last_login_at,
-              :failed_attempts, :locked_at, :created_at, :updated_at
+              :failed_attempts, :locked_at, :created_at, :updated_at,
+              :registration_status, :registration_submitted_at, :reviewed_at,
+              :registration_note
 
 json.full_name user.full_name
 json.role_key user.role_key
 json.role_label user.role_label
+json.pending_registration user.pending_registration?
+json.reviewed_by_name user.reviewed_by&.full_name
+json.profile_image_url user.profile_image.attached? ? rails_blob_url(user.profile_image, host: request.host_with_port, protocol: request.protocol) : nil
 json.locked_out user.locked_out?
 json.site_name user.current_site&.name
 json.building_name user.building&.name
@@ -25,8 +30,11 @@ if local_assigns[:include_features]
   # should not hide every feature-gated menu item. feature_keys is only
   # emitted when the user has a current site, so it remains nil otherwise.
   json.features_configured Feature.active.exists?
+  # Always emit an array once the catalog is configured. A missing key is
+  # reserved for older sessions, which should keep the navigation permissive.
+  json.feature_keys(user.current_site.present? ? user.feature_keys : [])
+  json.permissions user.permission_keys
   if user.current_site.present?
-    json.feature_keys user.feature_keys
     json.effective_features user.effective_features do |feature|
       json.extract! feature, :id, :key, :name, :category
     end

@@ -3,13 +3,24 @@
 # ══════════════════════════════════════════════════════════════════════════
 
 system_roles = {
-  admin:    { name: "System Administrator", description: "Unrestricted access to every module.", power_level: 100 },
-  security: { name: "Security Desk",        description: "Manages visitor passes and on-site staff.", power_level: 60 },
-  staff:    { name: "Operations Staff",     description: "Everyday visitor check-in and own attendance.", power_level: 30 },
-  resident: { name: "Resident",             description: "Self-service visitor invites for residents.", power_level: 10 }
+  super_admin:   { name: "Super Administrator", description: "Unrestricted access to every module, role and permission.", power_level: 100 },
+  admin:         { name: "System Administrator", description: "Manages operations and users, but not roles or permissions.", power_level: 90 },
+  security:      { name: "Security Desk",        description: "Manages visitor passes and on-site staff.", power_level: 60 },
+  gate_security: { name: "Gate Security",        description: "Gate check-in for visitors and staff, including parking details.", power_level: 50 },
+  staff:         { name: "Operations Staff",     description: "Everyday visitor check-in and own attendance.", power_level: 30 },
+  resident:      { name: "Resident",             description: "Self-service visitor invites for residents.", power_level: 10 }
 }
 
+all_actions = Role::RESOURCES.to_h { |resource| [ resource[:key], resource[:actions] ] }
+
+admin_permissions = all_actions.merge(
+  # Admins run day-to-day operations and manage users, but role and
+  # permission changes belong to super admins only.
+  "roles" => %w[read]
+)
+
 granted_permissions = {
+  admin: admin_permissions,
   security: {
     "users"    => %w[read],
     "features" => %w[read],
@@ -22,6 +33,18 @@ granted_permissions = {
     "user_sites" => %w[read],
     "visitors" => %w[read create update destroy check_in check_out generate_otp export],
     "staffs"   => %w[read create update destroy approve suspend attendance export],
+    "audit_logs" => %w[read]
+  },
+  gate_security: {
+    "features" => %w[read],
+    "site_features" => %w[read],
+    "sites"    => %w[read],
+    "buildings" => %w[read],
+    "floors"   => %w[read],
+    "units"    => %w[read],
+    "user_sites" => %w[read],
+    "visitors" => %w[read create update check_in check_out generate_otp export],
+    "staffs"   => %w[read create update approve suspend attendance export],
     "audit_logs" => %w[read]
   },
   staff: {
@@ -132,7 +155,29 @@ admin.assign_attributes(
 )
 admin.save!
 
-demo_site.sync_features!(features.select(&:default_enabled).map(&:id), actor: admin)
+super_admin = User.find_or_initialize_by(email: "superadmin@lect-and-nect.test")
+super_admin.assign_attributes(
+  firstname: "Super",
+  lastname: "Admin",
+  role: roles.fetch("super_admin"),
+  active: true,
+  password: "ChangeMeNow!2026",
+  current_site_id: demo_site.id
+)
+super_admin.save!
+
+gate_security = User.find_or_initialize_by(email: "gate.security@lect-and-nect.test")
+gate_security.assign_attributes(
+  firstname: "Gate",
+  lastname: "Security",
+  role: roles.fetch("gate_security"),
+  active: true,
+  password: "ChangeMeNow!2026",
+  current_site_id: demo_site.id
+)
+gate_security.save!
+
+demo_site.sync_features!(features.select(&:default_enabled).map(&:id), actor: super_admin)
 
 if admin.user_sites.empty?
   admin.user_sites.create!(
@@ -154,7 +199,8 @@ security.assign_attributes(
   lastname: "Desk",
   role: roles.fetch("security"),
   active: true,
-  password: "ChangeMeNow!2026"
+  password: "ChangeMeNow!2026",
+  current_site_id: demo_site.id
 )
 security.save!
 

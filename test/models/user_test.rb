@@ -21,6 +21,37 @@ class UserTest < ActiveSupport::TestCase
     assert_equal "919876543210", user.mobile
   end
 
+  test "accepts an image profile photo and rejects other file types" do
+    user = User.create!(
+      firstname: "Photo",
+      lastname: "User",
+      email: "photo@example.test",
+      password: "StrongPass!2026"
+    )
+
+    user.profile_image.attach(
+      io: StringIO.new(File.binread(Rails.root.join("test/fixtures/files/profile.png"))),
+      filename: "profile.png",
+      content_type: "image/png"
+    )
+    assert user.valid?
+
+    invalid = User.create!(
+      firstname: "Text",
+      lastname: "User",
+      email: "text@example.test",
+      password: "StrongPass!2026"
+    )
+    invalid.profile_image.attach(
+      io: StringIO.new("not an image"),
+      filename: "note.txt",
+      content_type: "text/plain"
+    )
+
+    assert_not invalid.valid?
+    assert_includes invalid.errors[:profile_image], "must be a JPEG, PNG or WebP image"
+  end
+
   test "stores and verifies otp by digest" do
     user = User.create!(
       firstname: "OTP",

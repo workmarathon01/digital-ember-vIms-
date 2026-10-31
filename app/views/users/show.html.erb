@@ -1,7 +1,16 @@
 <section class="page-title">
   <h1><%= @user.full_name %></h1>
   <div class="actions">
+    <% if @user.profile_image.attached? %>
+      <%= image_tag url_for(@user.profile_image), alt: "Profile photo of #{@user.full_name}", class: "profile-photo" %>
+    <% end %>
     <%= link_to "Edit", edit_user_path(@user), class: "button" if policy(@user).edit? %>
+    <% if policy(@user).approve? %>
+      <%= button_to "Approve registration", approve_registration_user_path(@user), method: :post, class: "button" %>
+    <% end %>
+    <% if policy(@user).reject? %>
+      <%= button_to "Reject registration", reject_registration_user_path(@user), method: :post, class: "danger" %>
+    <% end %>
     <% if policy(@user).lock? && !@user.locked_out? %>
       <%= button_to "Lock account", lock_user_path(@user), method: :post, class: "" %>
     <% end %>
@@ -20,6 +29,21 @@
     <%= @user.active? ? "Active" : "Inactive" %>
     <%= "locked" if @user.locked_out? %>
   </dd>
+  <dt>Registration</dt><dd>
+    <%= @user.registration_status.titleize %>
+    <% if @user.pending_registration? %>
+      <span class="pill danger">awaiting approval</span>
+    <% end %>
+    <% if @user.reviewed_at.present? %>
+      <span class="muted">
+        reviewed by <%= @user.reviewed_by&.full_name || "an administrator" %>
+        on <%= @user.reviewed_at.to_fs(:short) %>
+      </span>
+    <% end %>
+  </dd>
+  <% if @user.registration_note.present? %>
+    <dt>Review note</dt><dd><%= @user.registration_note %></dd>
+  <% end %>
   <dt>Sign in count</dt><dd><%= @user.sign_in_count %></dd>
   <dt>Last login</dt><dd><%= @user.last_login_at&.to_fs(:long) || "-" %></dd>
   <dt>User type</dt><dd><%= @user.user_type.presence || "-" %></dd>

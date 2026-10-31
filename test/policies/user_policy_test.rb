@@ -2,17 +2,27 @@ require "test_helper"
 
 class UserPolicyTest < ActiveSupport::TestCase
   def setup
+    @super_admin = User.create!(firstname: "Super", lastname: "One", email: "super-admin@example.test",
+                                password: "StrongPass!2026", role: role("super_admin", 100))
     @admin = User.create!(firstname: "Admin", lastname: "One", email: "admin@example.test",
-                          password: "StrongPass!2026", role: role("admin"))
+                          password: "StrongPass!2026", role: role("admin", 90))
+    seed_admin_permissions(@admin.role)
     @security = User.create!(firstname: "Sec", lastname: "Two", email: "security@example.test",
-                             password: "StrongPass!2026", role: role("security"))
+                             password: "StrongPass!2026", role: role("security", 60))
   end
 
-  def role(key)
+  def role(key, level)
     Role.find_or_create_by!(key: key) do |r|
       r.name = key.titleize
-      r.power_level = key == "admin" ? 100 : 60
+      r.power_level = level
       r.is_system = true
+    end
+  end
+
+  def seed_admin_permissions(role)
+    Role::RESOURCES.each do |resource|
+      actions = resource[:key] == "roles" ? %w[read] : resource[:actions]
+      actions.each { |action| role.permissions.find_or_create_by!(resource: resource[:key], action: action) }
     end
   end
 
@@ -26,13 +36,30 @@ class UserPolicyTest < ActiveSupport::TestCase
     end
   end
 
-  test "admin can manage everything" do
-    policy = UserPolicy.new(@admin, User)
+  test "super admin can manage everything" do
+    policy = UserPolicy.new(@super_admin, User)
     assert policy.index?
     assert policy.create?
     assert policy.destroy?
     assert policy.lock?
     assert policy.unlock?
+  end
+
+  test "admin can manage users but not super admin accounts" do
+    policy = UserPolicy.new(@admin, @super_admin)
+    assert_not policy.show?
+    assert_not policy.update?
+    assert_not policy.destroy?
+    assert_not policy.lock?
+    assert_not policy.unlock?
+  end
+
+  test "admin only sees non-super-admin accounts" do
+    scope = UserPolicy::Scope.new(@admin, User).resolve
+
+    assert_includes scope, @admin
+    assert_includes scope, @security
+    assert_not_includes scope, @super_admin
   end
 
   test "security can read users but not create or destroy" do
