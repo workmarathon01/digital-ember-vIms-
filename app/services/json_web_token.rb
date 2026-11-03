@@ -6,7 +6,7 @@ module JsonWebToken
 
   ALGORITHM = "HS256".freeze
   ISSUER = "lect_and_nect".freeze
-  ACCESS_TTL = 15.minutes
+  ACCESS_TTL = 6.hours
   REFRESH_TTL = 30.days
 
   ACCESS_TYPE = "access".freeze

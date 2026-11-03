@@ -3,6 +3,7 @@ class Role < ApplicationRecord
 
   RESOURCES = [
     { key: "users", label: "Users", actions: %w[read create update deactivate lock assign_roles approve reject] },
+    { key: "departments", label: "Departments", actions: %w[read create update destroy] },
     { key: "features", label: "Feature Catalog", actions: %w[read create update destroy] },
     { key: "site_features", label: "Site Feature Access", actions: %w[read update] },
     { key: "user_features", label: "User Feature Access", actions: %w[read update] },

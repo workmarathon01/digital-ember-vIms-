@@ -8,12 +8,12 @@
   <% end %>
 </section>
 
-<%= form_with url: units_path, method: :get, class: "filters" do |form| %>
+<%= form_with url: units_path, method: :get, class: "filters", data: { controller: "location-cascade", location_cascade_allow_blank_parents: "true" } do |form| %>
   <label>Search <%= form.search_field :q, value: params[:q], placeholder: "Unit name or type" %></label>
-  <label>Site <%= form.select :site_id, site_options(@sites), include_blank: "All sites", selected: params[:site_id] %></label>
-  <label>Building <%= form.select :building_id, building_options(@buildings), include_blank: "All buildings", selected: params[:building_id] %></label>
-  <label>Floor <%= form.select :floor_id, floor_options(@floors), include_blank: "All floors", selected: params[:floor_id] %></label>
-  <label>Status <%= form.select :status, Unit::STATUSES.map { |status| [ status.titleize, status ] }, include_blank: "All statuses", selected: params[:status] %></label>
+  <label>Site <%= form.select :site_id, site_options(@sites), { include_blank: "All sites", selected: params[:site_id] }, { data: { location_level: "site" } } %></label>
+  <label>Building <%= form.select :building_id, building_options(@buildings), { include_blank: "All buildings", selected: params[:building_id] }, { data: { location_level: "building" } } %></label>
+  <label>Floor <%= form.select :floor_id, floor_options(@floors), { include_blank: "All floors", selected: params[:floor_id] }, { data: { location_level: "floor" } } %></label>
+  <label>Status <%= form.select :status, Unit::STATUSES.map { |status| [ status.titleize, status ] }, { include_blank: "All statuses", selected: params[:status] } %></label>
   <%= form.submit "Filter" %>
   <%= link_to "Clear", units_path %>
 <% end %>

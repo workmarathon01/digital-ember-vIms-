@@ -32,6 +32,14 @@ class JsonAuthenticationTest < ActionDispatch::IntegrationTest
     assert_not body.key?("password_digest")
   end
 
+  test "access tokens expire six hours after they are issued" do
+    body = sign_in
+    payload = JsonWebToken.decode_access(body["access_token"])
+
+    assert_equal 6.hours.to_i, body["expires_in"]
+    assert_equal 6.hours.to_i, payload["exp"] - payload["iat"]
+  end
+
   test "json login with wrong password is unauthorized" do
     post session_path(format: :json), params: { email: @user.email, password: "wrong-password" }
 
@@ -81,6 +89,15 @@ class JsonAuthenticationTest < ActionDispatch::IntegrationTest
     assert body["access_token"].present?
     assert body["refresh_token"].present?
     assert_not_equal refresh, body["refresh_token"]
+  end
+
+  test "refresh works without an explicit JSON format" do
+    refresh = sign_in.fetch("refresh_token")
+
+    post refresh_session_path, params: { refresh_token: refresh }
+
+    assert_response :success
+    assert response.parsed_body["access_token"].present?
   end
 
   test "an access token cannot be used to refresh" do

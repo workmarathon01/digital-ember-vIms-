@@ -8,10 +8,10 @@
   <% end %>
 </section>
 
-<%= form_with url: floors_path, method: :get, class: "filters" do |form| %>
+<%= form_with url: floors_path, method: :get, class: "filters", data: { controller: "location-cascade", location_cascade_allow_blank_parents: "true" } do |form| %>
   <label>Search <%= form.search_field :q, value: params[:q], placeholder: "Floor name" %></label>
-  <label>Site <%= form.select :site_id, site_options(@sites), include_blank: "All sites", selected: params[:site_id] %></label>
-  <label>Building <%= form.select :building_id, building_options(@buildings), include_blank: "All buildings", selected: params[:building_id] %></label>
+  <label>Site <%= form.select :site_id, site_options(@sites), { include_blank: "All sites", selected: params[:site_id] }, { data: { location_level: "site" } } %></label>
+  <label>Building <%= form.select :building_id, building_options(@buildings), { include_blank: "All buildings", selected: params[:building_id] }, { data: { location_level: "building" } } %></label>
   <%= form.submit "Filter" %>
   <%= link_to "Clear", floors_path %>
 <% end %>

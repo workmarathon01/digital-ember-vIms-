@@ -1,4 +1,4 @@
-<%= form_with model: user, class: "form-grid" do |form| %>
+<%= form_with model: user, class: "form-grid", data: { controller: "location-cascade" } do |form| %>
   <%= render "shared/errors", record: user %>
 
   <fieldset>
@@ -21,6 +21,7 @@
   <fieldset>
     <legend>Access</legend>
     <label>Role <%= form.select :role_id, @assignable_roles.collect { |r| [ r.name, r.id ] }, include_blank: "Unassigned" %></label>
+    <label>Department <%= form.collection_select :department_id, @departments, :id, :name, include_blank: "Unassigned" %></label>
     <% if user.persisted? %>
       <label>Password <%= form.password_field :password, placeholder: "Leave blank to keep current password", minlength: 12 %></label>
     <% else %>
@@ -31,9 +32,11 @@
 
   <fieldset>
     <legend>Residence</legend>
-    <label>Primary site <%= form.collection_select :current_site_id, @sites, :id, :display_name, include_blank: "No site" %></label>
-    <label>Primary unit <%= form.select :unit_id, unit_options(@units), include_blank: "No unit / site-only" %></label>
-    <p class="muted">Selecting a unit automatically fills its site, building and floor. Additional residences can be managed from the user profile.</p>
+    <label>Primary site <%= form.collection_select :current_site_id, @sites, :id, :display_name, { include_blank: "No site" }, { data: { location_level: "site" } } %></label>
+    <label>Building <%= form.select :building_id, building_options(@buildings), { include_blank: "No building" }, { data: { location_level: "building" } } %></label>
+    <label>Floor <%= form.select :floor_id, floor_options(@floors), { include_blank: "No floor" }, { data: { location_level: "floor" } } %></label>
+    <label>Primary unit <%= form.select :unit_id, unit_options(@units), { include_blank: "No unit / site-only" }, { data: { location_level: "unit" } } %></label>
+    <p class="muted">Only buildings, floors and units that belong to the selected site are shown.</p>
     <label>Company ID <%= form.number_field :company_id %></label>
   </fieldset>
 

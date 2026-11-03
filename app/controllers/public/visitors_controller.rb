@@ -52,6 +52,28 @@ module Public
       end
     end
 
+    # GET /public/visitors/pass?token=...
+    #
+    # Public, read-only view of a visitor pass. Only the signed token embedded in
+    # the SMS/email link is accepted here; bare pass codes stay limited to the
+    # gate verification endpoint.
+    def pass
+      @visitor = Visitor.find_by_public_token(params[:token])
+
+      if @visitor.nil?
+        return render_public_error(
+          "pass_not_found",
+          "This pass link is invalid, expired or has been revoked.",
+          :not_found
+        )
+      end
+
+      response.headers["Cache-Control"] = "no-store"
+      @found = true
+      @already_checked_in = @visitor.checked_in?
+      render :pass
+    end
+
     # GET /public/visitors/verify?code=...
     #
     # Verifies a scanned QR token or a manually typed PASS-XXXXXXXX code.

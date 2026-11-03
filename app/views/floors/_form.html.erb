@@ -1,9 +1,10 @@
-<%= form_with model: floor, class: "form-grid" do |form| %>
+<%= form_with model: floor, class: "form-grid", data: { controller: "location-cascade" } do |form| %>
   <%= render "shared/errors", record: floor %>
 
   <fieldset>
     <legend>Floor details</legend>
-    <label>Building <%= form.select :building_id, building_options(@buildings), include_blank: "Select a building", required: true %></label>
+    <label>Site <%= select_tag :site_filter, options_for_select(site_options(@sites), floor.site_id), include_blank: "All sites", data: { location_level: "site" } %></label>
+    <label>Building <%= form.select :building_id, building_options(@buildings), { include_blank: "Select a building" }, { required: true, data: { location_level: "building" } } %></label>
     <label>Name <%= form.text_field :name, required: true, placeholder: "Ground Floor, 4th Floor…" %></label>
     <label>Level <%= form.number_field :level, placeholder: "Auto-derived from the name" %></label>
     <label>Description <%= form.text_area :description, rows: 3 %></label>

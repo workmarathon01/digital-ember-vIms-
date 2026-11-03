@@ -1,4 +1,4 @@
-<%= form_with model: visitor, class: "form-grid", data: { controller: "visitor-host", visitor_host_url_value: public_hosts_path, visitor_host_selected_value: visitor.vhost_id } do |form| %>
+<%= form_with model: visitor, class: "form-grid", data: { controller: "visitor-host location-cascade", visitor_host_url_value: public_hosts_path, visitor_host_selected_value: visitor.vhost_id } do |form| %>
   <%= render "shared/errors", record: visitor %>
 
   <fieldset>
@@ -22,12 +22,12 @@
     <label>Frequency <%= form.text_field :frequency, placeholder: "Once / Daily / Weekly" %></label>
     <label>Expected date <%= form.date_field :expected_date %></label>
     <label>Expected time <%= form.time_field :expected_time %></label>
-    <label>Site <%= form.select :site_id, site_options(@sites), include_blank: "Unassigned" %></label>
-    <label>Building <%= form.select :building_id, building_options(@buildings), include_blank: "No building" %></label>
-    <label>Floor <%= form.select :floor_id, floor_options(@floors), include_blank: "No floor" %></label>
-    <label>Unit <%= form.select :unit_id, unit_options(@units), { include_blank: "No unit" }, { data: { visitor_host_target: "unit", action: "change->visitor-host#refresh" } } %></label>
+    <label>Site <%= form.select :site_id, site_options(@sites), { include_blank: "Unassigned" }, { data: { location_level: "site" } } %></label>
+    <label>Building <%= form.select :building_id, building_options(@buildings), { include_blank: "No building" }, { data: { location_level: "building" } } %></label>
+    <label>Floor <%= form.select :floor_id, floor_options(@floors), { include_blank: "No floor" }, { data: { location_level: "floor" } } %></label>
+    <label>Unit <%= form.select :unit_id, unit_options(@units), { include_blank: "No unit" }, { data: { location_level: "unit", visitor_host_target: "unit", action: "change->visitor-host#refresh" } } %></label>
     <label>Host / Resident <%= form.select :vhost_id, (@hosts || []).map { |host| [ host.full_name, host.id ] }, { include_blank: "Select host" }, { data: { visitor_host_target: "host" } } %></label>
-    <p class="muted">Selecting a unit narrows the host list to residents linked to that unit. Site, building and floor are filled automatically.</p>
+    <p class="muted">Selecting a site narrows the building, floor and unit lists. Selecting a unit narrows the host list to residents linked to that unit.</p>
   </fieldset>
 
   <fieldset>

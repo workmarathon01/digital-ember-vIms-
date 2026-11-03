@@ -1,9 +1,11 @@
-<%= form_with model: unit, class: "form-grid" do |form| %>
+<%= form_with model: unit, class: "form-grid", data: { controller: "location-cascade" } do |form| %>
   <%= render "shared/errors", record: unit %>
 
   <fieldset>
     <legend>Unit details</legend>
-    <label>Floor <%= form.select :floor_id, floor_options(@floors), include_blank: "Select a floor", required: true %></label>
+    <label>Site <%= select_tag :site_filter, options_for_select(site_options(@sites), unit.site_id), include_blank: "All sites", data: { location_level: "site" } %></label>
+    <label>Building <%= select_tag :building_filter, options_for_select(building_options(@buildings), unit.building_id), include_blank: "All buildings", data: { location_level: "building" } %></label>
+    <label>Floor <%= form.select :floor_id, floor_options(@floors), { include_blank: "Select a floor" }, { required: true, data: { location_level: "floor" } } %></label>
     <label>Name / number <%= form.text_field :name, required: true, placeholder: "A-101, Office 3B…" %></label>
     <label>Unit type <%= form.text_field :unit_type, placeholder: "1BHK, 2BHK, Office…" %></label>
     <label>Carpet area (sq.ft.) <%= form.number_field :carpet_area, step: 0.01 %></label>

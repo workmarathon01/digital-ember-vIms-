@@ -8,7 +8,8 @@ Rails.application.routes.draw do
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
   resource :session, only: %i[new create destroy]
-  post "session/refresh", to: "sessions#refresh", as: :refresh_session
+  post "session/refresh", to: "sessions#refresh", as: :refresh_session,
+                          defaults: { format: :json }
 
   resources :users do
     member do
@@ -34,6 +35,9 @@ Rails.application.routes.draw do
 
   resources :features
 
+  resources :departments, only: %i[index show create update destroy],
+                          defaults: { format: :json }
+
   resources :sites do
     resource :features, only: %i[show update], controller: "site_features", as: :features
   end
@@ -53,6 +57,7 @@ Rails.application.routes.draw do
       post :generate_otp
       post :check_in
       post :check_out
+      post :send_pass
     end
   end
 
@@ -60,6 +65,7 @@ Rails.application.routes.draw do
   # Keep this namespace limited to actions that are safe for the public kiosk.
   namespace :public do
     get "visitors/lookup", to: "visitors#lookup", as: :visitor_lookup
+    get "visitors/pass", to: "visitors#pass", as: :visitor_pass
     get "visitors/verify", to: "visitors#verify", as: :visitor_verify
     post "visitors/check_in", to: "visitors#check_in", as: :visitor_check_in
     post "visitors", to: "visitors#create", as: :visitors

@@ -132,6 +132,23 @@ class JsonRenderingTest < ActionDispatch::IntegrationTest
     assert User.find_by(email: "photo-user@example.test").profile_image.attached?
   end
 
+  test "creating a user assigns a department" do
+    department = Department.create!(name: "Finance #{SecureRandom.hex(2)}")
+
+    post users_path(format: :json), headers: auth_headers, params: {
+      user: {
+        firstname: "Department",
+        lastname: "Member",
+        email: "department-member@example.test",
+        password: "StrongPass!2026",
+        department_id: department.id
+      }
+    }
+
+    assert_response :created
+    assert_equal department.id, User.find_by!(email: "department-member@example.test").department_id
+  end
+
   test "staff can update a user with a profile photo using a multipart request" do
     user = User.create!(
       firstname: "Edit", lastname: "Target", email: "edit-target@example.test",

@@ -84,6 +84,7 @@ class FloorsController < ApplicationController
   end
 
   def load_options
+    @sites = Site.active.order(:name)
     @buildings = Building.includes(:site).order("sites.name", :name)
   end
 

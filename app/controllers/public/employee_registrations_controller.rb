@@ -11,6 +11,7 @@ module Public
     # Only exposes the property directory needed to choose a work location.
     def options
       @sites = Site.active.order(:name)
+      @departments = Department.active.order(:name)
       render :options
     end
 
@@ -27,6 +28,15 @@ module Public
         return render_public_error(
           "invalid_site",
           "Select a valid work location to continue.",
+          :unprocessable_entity
+        )
+      end
+
+      if registration_params[:department_id].present? &&
+         !Department.active.exists?(id: registration_params[:department_id])
+        return render_public_error(
+          "invalid_department",
+          "Select a valid department to continue.",
           :unprocessable_entity
         )
       end
@@ -66,7 +76,7 @@ module Public
     def registration_params
       @registration_params ||= params.require(:employee_registration).permit(
         :firstname, :lastname, :email, :mobile, :password, :password_confirmation,
-        :current_site_id, :position, :date_of_joining, :profile_image
+        :current_site_id, :department_id, :position, :date_of_joining, :profile_image
       )
     end
 

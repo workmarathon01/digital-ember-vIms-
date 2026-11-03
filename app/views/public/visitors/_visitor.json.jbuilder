@@ -19,3 +19,4 @@ unless local_assigns[:hide_profile_image]
   json.profile_image_url visitor.profile_image.attached? ? rails_blob_url(visitor.profile_image, host: request.host_with_port, protocol: request.protocol) : nil
 end
 json.qr_token visitor.qr_token if local_assigns[:include_qr_token]
+json.pass_url visitor.public_pass_url if local_assigns[:include_pass_url]

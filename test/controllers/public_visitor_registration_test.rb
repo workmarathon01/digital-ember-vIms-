@@ -75,6 +75,65 @@ class PublicVisitorRegistrationTest < ActionDispatch::IntegrationTest
     assert_equal "validation_failed", response.parsed_body.dig("error", "code")
   end
 
+  test "self-registration returns a public pass URL" do
+    post public_visitors_path(format: :json), params: {
+      visitor: { name: "Linked Guest", contact_no: "9876500099", purpose: "Meeting" }
+    }
+
+    assert_response :created
+    body = response.parsed_body
+    pass_url = body.dig("visitor", "pass_url")
+
+    assert_match %r{\Ahttps://amplify-automation\.com/access/\?t=}, pass_url
+    assert_equal "Linked Guest", body.dig("visitor", "name")
+  end
+
+  test "public pass endpoint returns pass details for a signed token" do
+    post public_visitors_path(format: :json), params: {
+      visitor: { name: "Pass Viewer", contact_no: "9876500088", purpose: "Interview" }
+    }
+    assert_response :created
+    created = response.parsed_body["visitor"]
+    token = created["qr_token"]
+
+    get public_visitor_pass_path(format: :json), params: { token: token }
+
+    assert_response :success
+    body = response.parsed_body
+    assert_equal true, body["found"]
+    assert_equal false, body["already_checked_in"]
+    assert_equal created["id"], body.dig("visitor", "id")
+    assert_equal "Pass Viewer", body.dig("visitor", "name")
+    assert_equal created["pass_code"], body.dig("visitor", "pass_code")
+    assert_equal created["pass_url"], body.dig("visitor", "pass_url")
+    assert body.dig("visitor", "created_at").present?
+    assert body.dig("visitor", "start_pass").present?
+    assert body.dig("visitor", "end_pass").present?
+  end
+
+  test "public pass endpoint rejects a bare pass code" do
+    visitor = Visitor.create!(name: "Code Only Guest", contact_no: "9876500077")
+
+    get public_visitor_pass_path(format: :json), params: { token: visitor.pass_code }
+
+    assert_response :not_found
+    assert_equal "pass_not_found", response.parsed_body.dig("error", "code")
+  end
+
+  test "public pass endpoint rejects an unknown token" do
+    get public_visitor_pass_path(format: :json), params: { token: "not-a-signed-token" }
+
+    assert_response :not_found
+    assert_equal "pass_not_found", response.parsed_body.dig("error", "code")
+  end
+
+  test "public pass endpoint requires a token" do
+    get public_visitor_pass_path(format: :json)
+
+    assert_response :not_found
+    assert_equal "pass_not_found", response.parsed_body.dig("error", "code")
+  end
+
   test "hosts endpoint returns only the residents linked to the selected unit" do
     host = User.create!(
       firstname: "Hari", lastname: "Host", email: "hari-host@example.test",

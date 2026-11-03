@@ -29,6 +29,11 @@ class Visitor < ApplicationRecord
     where("name ILIKE :q OR contact_no ILIKE :q OR purpose ILIKE :q OR pass_code ILIKE :q OR vehicle_number ILIKE :q", q: term)
   }
 
+  # Compact public pass token: "<base36 id>-<11 char HMAC>". Short enough to
+  # keep SMS messages and QR codes small, still unguessable (64-bit signature).
+  COMPACT_TOKEN_PATTERN = /\A([0-9a-z]{1,10})-([A-Za-z0-9_-]{11})\z/
+  COMPACT_SIGNATURE_BYTES = 8
+
   class << self
     def normalize_contact_no(value)
       value.to_s.gsub(/\D/, "")
@@ -48,14 +53,50 @@ class Visitor < ApplicationRecord
     def signed_qr_token(visitor)
       return if visitor.id.blank? || visitor.pass_code.blank?
 
-      qr_verifier.generate(
-        { "visitor_id" => visitor.id, "pass_code" => visitor.pass_code },
-        purpose: "visitor-pass"
+      "#{visitor.id.to_s(36)}-#{compact_qr_signature(visitor)}"
+    end
+
+    def compact_qr_signature(visitor)
+      raw = OpenSSL::HMAC.digest(
+        "SHA256",
+        Rails.application.key_generator.generate_key("visitor-pass-compact"),
+        "visitor-pass:#{visitor.id}:#{visitor.pass_code}"
       )
+      Base64.urlsafe_encode64(raw[0, COMPACT_SIGNATURE_BYTES], padding: false)
     end
 
     def verify_qr_token(value)
-      payload = qr_verifier.verified(value, purpose: "visitor-pass")
+      token = value.to_s.strip
+      return if token.blank?
+
+      compact = verify_compact_qr_token(token)
+      return compact if compact
+
+      verify_legacy_qr_token(token)
+    rescue ActiveSupport::MessageVerifier::InvalidSignature
+      nil
+    end
+
+    # A compact token only stores the visitor id; the signature proves the
+    # token was issued for that visitor's current pass code.
+    def verify_compact_qr_token(token)
+      match = COMPACT_TOKEN_PATTERN.match(token)
+      return unless match
+
+      visitor = active.find_by(id: match[1].to_i(36))
+      return if visitor.blank?
+      return unless ActiveSupport::SecurityUtils.secure_compare(
+        compact_qr_signature(visitor),
+        match[2]
+      )
+
+      visitor
+    end
+
+    # Links sent before the compact token existed must keep working, so the
+    # legacy MessageVerifier format is still accepted.
+    def verify_legacy_qr_token(token)
+      payload = qr_verifier.verified(token, purpose: "visitor-pass")
       return if payload.blank?
 
       visitor = active.find_by(id: payload["visitor_id"])
@@ -63,8 +104,6 @@ class Visitor < ApplicationRecord
       return if payload["pass_code"].present? && visitor.pass_code != payload["pass_code"]
 
       visitor
-    rescue ActiveSupport::MessageVerifier::InvalidSignature
-      nil
     end
 
     def extract_scan_code(value)
@@ -99,17 +138,42 @@ class Visitor < ApplicationRecord
         value.to_s
       )
     end
+
+    # Base URL of the public Next.js app. Pass links are absolute so they can be
+    # embedded in SMS or email and opened from any device.
+    def public_pass_base_url
+      base = ENV["VISITOR_PASS_BASE_URL"].presence || "https://amplify-automation.com"
+      base.to_s.chomp("/")
+    end
+
+    # Only a signed token may be used to open the public pass page. Bare pass
+    # codes remain useful at the gate but are too easy to guess for a public URL.
+    def find_by_public_token(value)
+      verify_qr_token(value)
+    end
   end
 
   before_validation :sync_location_from_unit
   before_validation :set_default_pass_window, on: :create
+  before_validation :set_default_status, on: :create
   before_validation :reuse_previous_profile_image, on: :create
   before_create :generate_qr_token_digest
   before_create :assign_pass_code
+  after_create_commit :enqueue_pass_notification
 
   def checked_in?
     visitor_in_out == "IN"
   end
+
+  # Absolute, shareable link to the public visitor pass page.
+  def public_pass_url
+    token = qr_token
+    return if token.blank?
+
+    "#{self.class.public_pass_base_url}/access/?t=#{ERB::Util.url_encode(token)}"
+  end
+
+  alias pass_url public_pass_url
 
   def location_label
     unit&.location_label || [ site&.display_name, building&.name, floor&.name ].compact.join(" / ")
@@ -201,6 +265,20 @@ class Visitor < ApplicationRecord
   def set_default_pass_window
     self.start_pass ||= Time.current
     self.end_pass ||= 1.day.from_now
+  end
+
+  def set_default_status
+    self.status = true if status.nil?
+  end
+
+  def enqueue_pass_notification
+    return unless status? && contact_no.present?
+
+    VisitorPassNotificationJob.perform_later(id)
+  rescue StandardError => e
+    Rails.logger.error(
+      "[VisitorPassNotification] Could not enqueue for visitor #{id}: #{e.message}"
+    )
   end
 
   def assign_pass_code

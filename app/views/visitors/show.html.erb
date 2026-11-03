@@ -21,6 +21,15 @@
       <% end %>
     </dd>
     <dt>Pass code</dt><dd class="mono"><%= @visitor.pass_code %></dd>
+    <dt>Pass link</dt>
+    <dd class="mono">
+      <% if @visitor.public_pass_url.present? %>
+        <%= link_to @visitor.public_pass_url, @visitor.public_pass_url,
+                    target: "_blank", rel: "noopener noreferrer" %>
+      <% else %>
+        -
+      <% end %>
+    </dd>
     <dt>Contact</dt><dd><%= @visitor.contact_no %></dd>
     <dt>Purpose</dt><dd><%= @visitor.purpose.presence || "-" %></dd>
     <dt>Coming from</dt><dd><%= @visitor.coming_from.presence || "-" %></dd>
@@ -38,6 +47,9 @@
 
   <div class="panel pad">
     <h2>Gate operations</h2>
+    <% if policy(@visitor).update? && @visitor.contact_no.present? %>
+      <%= button_to "Send pass link SMS", send_pass_visitor_path(@visitor), class: "button" %>
+    <% end %>
     <% if current_user.can?(:visitors, :generate_otp) %>
       <%= button_to "Generate OTP", generate_otp_visitor_path(@visitor), class: "button" %>
     <% end %>

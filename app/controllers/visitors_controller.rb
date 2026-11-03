@@ -1,5 +1,5 @@
 class VisitorsController < ApplicationController
-  before_action :set_visitor, only: %i[show edit update destroy generate_otp check_in check_out]
+  before_action :set_visitor, only: %i[show edit update destroy generate_otp check_in check_out send_pass]
   before_action :load_property_options, only: %i[new create edit update]
 
   def index
@@ -81,6 +81,18 @@ class VisitorsController < ApplicationController
     authorize @visitor, :check_out?
     @visitor.mark_checked_out!
     redirect_to @visitor, notice: "Visitor checked out successfully."
+  end
+
+  # Re-send the public pass link to the visitor's mobile number.
+  def send_pass
+    authorize @visitor, :update?
+
+    if @visitor.contact_no.blank?
+      return redirect_to @visitor, alert: "This visitor has no mobile number on file."
+    end
+
+    VisitorPassNotificationJob.perform_later(@visitor.id)
+    redirect_to @visitor, notice: "Pass link SMS queued for #{@visitor.contact_no}."
   end
 
   private

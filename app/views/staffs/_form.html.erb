@@ -1,4 +1,4 @@
-<%= form_with model: staff, class: "form-grid" do |form| %>
+<%= form_with model: staff, class: "form-grid", data: { controller: "location-cascade" } do |form| %>
   <%= render "shared/errors", record: staff %>
 
   <fieldset>
@@ -14,8 +14,8 @@
   <fieldset>
     <legend>Assignment</legend>
     <label>Work type <%= form.text_field :work_type, placeholder: "Housekeeping, Security, Technician…" %></label>
-    <label>Site <%= form.select :site_id, site_options(@sites), include_blank: "Unassigned" %></label>
-    <label>Unit <%= form.select :unit_id, unit_options(@units), include_blank: "No unit" %></label>
+    <label>Site <%= form.select :site_id, site_options(@sites), { include_blank: "Unassigned" }, { data: { location_level: "site" } } %></label>
+    <label>Unit <%= form.select :unit_id, unit_options(@units), { include_blank: "No unit" }, { data: { location_level: "unit" } } %></label>
     <label>Vendor ID <%= form.number_field :vendor_id %></label>
     <p class="muted">Selecting a unit automatically sets the staff member's site.</p>
   </fieldset>

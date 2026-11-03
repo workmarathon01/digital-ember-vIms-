@@ -94,10 +94,10 @@
 
   <% if current_user.can?(:user_sites, :create) %>
     <h3>Associate a residence</h3>
-    <%= form_with model: UserSite.new, url: user_sites_path, class: "form-grid" do |form| %>
+    <%= form_with model: UserSite.new, url: user_sites_path, class: "form-grid", data: { controller: "location-cascade" } do |form| %>
       <%= form.hidden_field :user_id, value: @user.id %>
-      <label>Site <%= form.collection_select :site_id, @sites, :id, :display_name, include_blank: "Derived from unit" %></label>
-      <label>Unit <%= form.select :unit_id, unit_options(@units), include_blank: "No specific unit" %></label>
+      <label>Site <%= form.collection_select :site_id, @sites, :id, :display_name, { include_blank: "Select a site" }, { data: { location_level: "site" } } %></label>
+      <label>Unit <%= form.select :unit_id, unit_options(@units), { include_blank: "No specific unit" }, { data: { location_level: "unit" } } %></label>
       <label>Ownership <%= form.select :ownership, UserSite::OWNERSHIPS.map { |ownership| [ ownership.titleize, ownership ] } %></label>
       <label>Move-in date <%= form.date_field :move_in_date %></label>
       <label class="checkbox"><%= form.check_box :is_primary %> Primary residence</label>

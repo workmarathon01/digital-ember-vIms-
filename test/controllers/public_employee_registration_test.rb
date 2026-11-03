@@ -3,6 +3,7 @@ require "test_helper"
 class PublicEmployeeRegistrationTest < ActionDispatch::IntegrationTest
   def setup
     @site = Site.create!(name: "Employee Campus", code: "EMP#{SecureRandom.hex(3).upcase}")
+    @department = Department.create!(name: "Employee Operations #{SecureRandom.hex(2)}")
     Role.find_or_create_by!(key: "staff") do |role|
       role.name = "Operations Staff"
       role.power_level = 30
@@ -51,6 +52,7 @@ class PublicEmployeeRegistrationTest < ActionDispatch::IntegrationTest
         password: "StrongPass!2026",
         password_confirmation: "StrongPass!2026",
         current_site_id: @site.id,
+        department_id: @department.id,
         position: "Facility Executive",
         date_of_joining: Date.current.iso8601
       }.merge(overrides)
@@ -92,7 +94,9 @@ class PublicEmployeeRegistrationTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     sites = response.parsed_body["sites"]
+    departments = response.parsed_body["departments"]
     assert_equal [ @site.id ], sites.map { |site| site["id"] }
+    assert_equal [ @department.id ], departments.map { |department| department["id"] }
     assert_equal 12, response.parsed_body["minimum_password_length"]
   end
 
@@ -114,6 +118,7 @@ class PublicEmployeeRegistrationTest < ActionDispatch::IntegrationTest
     assert_not user.is_admin_approved?
     assert_nil user.role
     assert_equal @site.id, user.current_site_id
+    assert_equal @department.id, user.department_id
     assert_equal "Facility Executive", user.position
     assert user.registration_submitted_at.present?
     assert_empty user.user_sites
@@ -179,6 +184,12 @@ class PublicEmployeeRegistrationTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_entity
     assert_equal "invalid_site", response.parsed_body.dig("error", "code")
+
+    post public_employee_registrations_path(format: :json),
+         params: registration_params(department_id: 0)
+
+    assert_response :unprocessable_entity
+    assert_equal "invalid_department", response.parsed_body.dig("error", "code")
   end
 
   test "admins can list and approve pending employee registrations" do

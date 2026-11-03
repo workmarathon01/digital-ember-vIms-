@@ -1,6 +1,8 @@
 require "test_helper"
 
 class AccessControlTest < ActionDispatch::IntegrationTest
+  include ActiveJob::TestHelper
+
   def setup
     @super_admin = create_role_and_user(:super_admin, "Super Admin", "super-admin@example.test", 100)
     @admin = create_role_and_user(:admin, "Admin User", "admin@example.test", 90)
@@ -210,6 +212,22 @@ class AccessControlTest < ActionDispatch::IntegrationTest
 
     post check_out_visitor_path(visitor)
     assert_equal "OUT", visitor.reload.visitor_in_out
+  end
+
+  test "a staff member can resend a visitor pass link" do
+    sign_in(@gate_security.email)
+    visitor = Visitor.create!(
+      name: "Re-send Guest",
+      contact_no: "9876500004",
+      created_by: @gate_security
+    )
+
+    assert_enqueued_with(job: VisitorPassNotificationJob, args: [ visitor.id ]) do
+      post send_pass_visitor_path(visitor)
+    end
+
+    assert_redirected_to visitor_path(visitor)
+    assert_match(/queued/, flash[:notice])
   end
 
   test "role permission matrix is rebuilt on update" do

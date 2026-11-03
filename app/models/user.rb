@@ -12,6 +12,7 @@ class User < ApplicationRecord
   has_one_attached :profile_image
 
   belongs_to :role, optional: true
+  belongs_to :department, optional: true
   belongs_to :reviewed_by, class_name: "User", foreign_key: :reviewed_by_id, optional: true
   belongs_to :current_site, class_name: "Site", foreign_key: :current_site_id, optional: true
   belongs_to :building, optional: true

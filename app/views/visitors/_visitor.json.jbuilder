@@ -11,6 +11,7 @@ json.extract! visitor, :id, :name, :contact_no, :purpose, :pass_code, :pass_numb
 json.checked_in visitor.checked_in?
 json.pass_active visitor.pass_active?
 json.qr_token visitor.qr_token
+json.pass_url visitor.public_pass_url
 json.created_by_name visitor.created_by&.full_name
 json.site_name visitor.site&.name
 json.building_name visitor.building&.name

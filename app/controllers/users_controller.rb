@@ -196,7 +196,7 @@ class UsersController < ApplicationController
     params.require(:user).permit(
       :email, :password, :firstname, :lastname, :active, :user_type,
       :company_id, :mobile, :unit_id, :current_site_id, :building_id, :floor_id, :role_id,
-      :profile_image
+      :department_id, :profile_image
     )
   end
 
@@ -215,7 +215,10 @@ class UsersController < ApplicationController
 
   def load_property_options
     @sites = Site.active.order(:name)
+    @buildings = Building.includes(:site).order("sites.name", :name)
+    @floors = Floor.includes(:site, :building).order("sites.name", "buildings.name", :level, :name)
     @units = Unit.includes(:site, :building, :floor).order("sites.name", "buildings.name", "floors.level", "units.name")
+    @departments = Department.order(:name)
     @assignable_roles = assignable_roles
   end
 
