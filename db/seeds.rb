@@ -7,7 +7,7 @@ system_roles = {
   admin:         { name: "System Administrator", description: "Manages operations and users, but not roles or permissions.", power_level: 90 },
   security:      { name: "Security Desk",        description: "Manages visitor passes and on-site staff.", power_level: 60 },
   gate_security: { name: "Gate Security",        description: "Gate check-in for visitors and staff, including parking details.", power_level: 50 },
-  staff:         { name: "Operations Staff",     description: "Everyday visitor check-in and own attendance.", power_level: 30 },
+  staff:         { name: "Operations Staff",     description: "Everyday visitor management and own attendance.", power_level: 30 },
   resident:      { name: "Resident",             description: "Self-service visitor invites for residents.", power_level: 10 }
 }
 
@@ -53,7 +53,7 @@ granted_permissions = {
     "buildings" => %w[read],
     "floors"   => %w[read],
     "units"    => %w[read],
-    "visitors" => %w[read check_in check_out],
+    "visitors" => %w[read create update destroy check_in check_out generate_otp export],
     "staffs"   => %w[read attendance]
   },
   resident: {

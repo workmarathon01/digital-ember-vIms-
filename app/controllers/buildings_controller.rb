@@ -8,7 +8,7 @@ class BuildingsController < ApplicationController
     @buildings = @buildings.where(site_id: params[:site_id]) if params[:site_id].present?
     @buildings = @buildings.search(params[:q]) if params[:q].present?
     @pagy, @buildings = pagy(@buildings, items: 25)
-    @sites = Site.order(:name)
+    @sites = policy_scope(Site).order(:name)
   end
 
   def show
@@ -25,7 +25,9 @@ class BuildingsController < ApplicationController
 
   def create
     authorize Building
-    @building = Building.new(building_params)
+    attrs = building_params
+    ensure_site_access!(attrs[:site_id])
+    @building = Building.new(attrs)
 
     if @building.save
       respond_to do |format|
@@ -46,8 +48,10 @@ class BuildingsController < ApplicationController
 
   def update
     authorize @building
+    attrs = building_params
+    ensure_site_access!(attrs[:site_id])
 
-    if @building.update(building_params)
+    if @building.update(attrs)
       respond_to do |format|
         format.html { redirect_to @building, notice: "Building updated successfully." }
         format.json { render :show, status: :ok }
@@ -79,11 +83,11 @@ class BuildingsController < ApplicationController
   private
 
   def set_building
-    @building = Building.find(params[:id])
+    @building = policy_scope(Building).find(params[:id])
   end
 
   def load_sites
-    @sites = Site.active.order(:name)
+    @sites = policy_scope(Site).active.order(:name)
   end
 
   def building_params

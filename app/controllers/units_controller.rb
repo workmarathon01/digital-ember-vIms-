@@ -26,7 +26,9 @@ class UnitsController < ApplicationController
 
   def create
     authorize Unit
-    @unit = Unit.new(unit_params)
+    attrs = unit_params
+    ensure_site_access!(Floor.find_by(id: attrs[:floor_id])&.site_id)
+    @unit = Unit.new(attrs)
 
     if @unit.save
       respond_to do |format|
@@ -47,8 +49,10 @@ class UnitsController < ApplicationController
 
   def update
     authorize @unit
+    attrs = unit_params
+    ensure_site_access!(Floor.find_by(id: attrs[:floor_id])&.site_id)
 
-    if @unit.update(unit_params)
+    if @unit.update(attrs)
       respond_to do |format|
         format.html { redirect_to @unit, notice: "Unit updated successfully." }
         format.json { render :show, status: :ok }
@@ -80,19 +84,19 @@ class UnitsController < ApplicationController
   private
 
   def set_unit
-    @unit = Unit.find(params[:id])
+    @unit = policy_scope(Unit).find(params[:id])
   end
 
   def load_options
-    @sites = Site.active.order(:name)
-    @buildings = Building.includes(:site).order("sites.name", :name)
-    @floors = Floor.includes(:site, :building).order("sites.name", "buildings.name", :level, :name)
+    @sites = policy_scope(Site).active.order(:name)
+    @buildings = policy_scope(Building).includes(:site).order("sites.name", :name)
+    @floors = policy_scope(Floor).includes(:site, :building).order("sites.name", "buildings.name", :level, :name)
   end
 
   def load_filters
-    @sites = Site.order(:name)
-    @buildings = Building.includes(:site).order("sites.name", :name)
-    @floors = Floor.includes(:site, :building).order("sites.name", "buildings.name", :level, :name)
+    @sites = policy_scope(Site).order(:name)
+    @buildings = policy_scope(Building).includes(:site).order("sites.name", :name)
+    @floors = policy_scope(Floor).includes(:site, :building).order("sites.name", "buildings.name", :level, :name)
   end
 
   def unit_params

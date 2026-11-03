@@ -3,8 +3,16 @@ class UserPolicy < ApplicationPolicy
     def resolve
       return scope.all if user&.super_admin?
 
-      super_admins = Role.where(key: "super_admin").select(:id)
-      scope.where(role_id: nil).or(scope.where.not(role_id: super_admins))
+      records = scope.where(role_id: nil).or(scope.where.not(role_id: super_admin_ids))
+      return records unless site_restricted?
+
+      records.for_sites(user.accessible_site_ids)
+    end
+
+    private
+
+    def super_admin_ids
+      Role.where(key: "super_admin").select(:id)
     end
   end
 

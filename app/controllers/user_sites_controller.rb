@@ -13,6 +13,8 @@ class UserSitesController < ApplicationController
   def create
     authorize UserSite
     @user_site = UserSite.new(user_site_params)
+    ensure_location_access!
+    ensure_target_user_access!
 
     if @user_site.save
       respond_to do |format|
@@ -67,7 +69,23 @@ class UserSitesController < ApplicationController
   private
 
   def set_user_site
-    @user_site = UserSite.find(params[:id])
+    @user_site = policy_scope(UserSite).find(params[:id])
+  end
+
+  # The residence location is derived from unit/floor/building, so check all
+  # of them before the model fills `site_id` in.
+  def ensure_location_access!
+    ensure_site_access!(@user_site.site_id)
+    ensure_site_access!(@user_site.building&.site_id)
+    ensure_site_access!(@user_site.floor&.site_id)
+    ensure_site_access!(@user_site.unit&.site_id)
+  end
+
+  def ensure_target_user_access!
+    return unless site_restricted?
+    return if policy_scope(User).exists?(id: @user_site.user_id)
+
+    raise Pundit::NotAuthorizedError
   end
 
   def user_site_params

@@ -55,6 +55,8 @@ class JsonRenderingTest < ActionDispatch::IntegrationTest
         visitor: {
           name: "Photo Visitor",
           contact_no: "9876500099",
+          expected_date: Date.current.iso8601,
+          expected_time: "10:00",
           profile_image: fixture_file_upload("profile.png", "image/png")
         }
       }

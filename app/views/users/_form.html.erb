@@ -7,7 +7,7 @@
     <label>Last name <%= form.text_field :lastname, required: true %></label>
     <label>Email <%= form.email_field :email, required: true %></label>
     <label>Mobile <%= form.telephone_field :mobile %></label>
-    <label>User type <%= form.select :user_type, @assignable_roles.pluck(:name) | [ user.user_type ].compact, include_blank: "Unassigned" %></label>
+    <label>User type <%= form.select :user_type, @assignable_roles.collect { |role| [ role.name, role.key ] } | [ [ user.user_type, user.user_type ] ].reject { |key, _| key.blank? }, include_blank: "Unassigned" %></label>
     <label>
       Profile photo
       <% if user.profile_image.attached? %>

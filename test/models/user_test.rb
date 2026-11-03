@@ -52,6 +52,38 @@ class UserTest < ActiveSupport::TestCase
     assert_includes invalid.errors[:profile_image], "must be a JPEG, PNG or WebP image"
   end
 
+  test "normalizes user type and assigns the matching role" do
+    role = Role.find_or_create_by!(key: "gate_security") do |record|
+      record.name = "Gate Security"
+      record.power_level = 50
+      record.is_system = true
+    end
+
+    user = User.create!(
+      firstname: "Gate",
+      lastname: "User",
+      email: "gate-type@example.test",
+      password: "StrongPass!2026",
+      user_type: "Gate Security"
+    )
+
+    assert_equal "gate_security", user.user_type
+    assert_equal role, user.role
+  end
+
+  test "employee registration type does not receive a role before approval" do
+    user = User.create!(
+      firstname: "Pending",
+      lastname: "Employee",
+      email: "pending-type@example.test",
+      password: "StrongPass!2026",
+      user_type: "employee"
+    )
+
+    assert_equal "employee", user.user_type
+    assert_nil user.role
+  end
+
   test "stores and verifies otp by digest" do
     user = User.create!(
       firstname: "OTP",

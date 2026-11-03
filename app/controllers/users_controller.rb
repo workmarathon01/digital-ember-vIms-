@@ -35,7 +35,8 @@ class UsersController < ApplicationController
   def show
     authorize @user
     load_user_details
-    @feature_site = @user.current_site
+    # Never expose another site's feature overrides on a multi-site resident.
+    @feature_site = policy_scope(Site).find_by(id: @user.current_site_id) || current_site
     @available_features = @feature_site.present? ? @feature_site.enabled_features : Feature.none
     @effective_feature_ids = @feature_site.present? ? @user.effective_features(@feature_site).pluck(:id) : []
     @override_states = @user.user_features.where(site_id: @feature_site&.id).pluck(:feature_id, :enabled)
@@ -44,7 +45,7 @@ class UsersController < ApplicationController
 
   def new
     authorize User
-    @user = User.new(active: true)
+    @user = User.new(active: true, current_site_id: current_site&.id)
   end
 
   def edit
@@ -55,6 +56,7 @@ class UsersController < ApplicationController
     authorize User
     attrs = create_params
     attrs.delete(:role_id) unless current_user.can?(:users, :assign_roles)
+    assign_site_for_write!(attrs)
     @user = User.new(attrs)
     role_allowed = role_assignment_allowed?(attrs[:role_id])
     @user.errors.add(:role, "cannot be assigned") unless role_allowed
@@ -80,6 +82,7 @@ class UsersController < ApplicationController
     attrs = update_params
     attrs.delete(:password) if attrs[:password].blank?
     attrs.delete(:role_id) unless current_user.can?(:users, :assign_roles)
+    assign_site_for_write!(attrs)
     role_allowed = role_assignment_allowed?(attrs[:role_id])
     @user.errors.add(:role, "cannot be assigned") unless role_allowed
 
@@ -184,12 +187,13 @@ class UsersController < ApplicationController
   end
 
   def set_user
-    @user = User.includes(:role, profile_image_attachment: :blob).find(params[:id])
+    @user = policy_scope(User).includes(:role, profile_image_attachment: :blob).find(params[:id])
   end
 
   def load_user_details
-    @user_sites = @user.user_sites.includes(:site, :building, :floor, :unit).recent_first
-    @audit_logs = AuditLog.newest_first.where(actor: @user).includes(:actor).limit(10)
+    @user_sites = policy_scope(UserSite).where(user_id: @user.id)
+                                       .includes(:site, :building, :floor, :unit).recent_first
+    @audit_logs = policy_scope(AuditLog).newest_first.where(actor: @user).includes(:actor).limit(10)
   end
 
   def create_params
@@ -214,12 +218,37 @@ class UsersController < ApplicationController
   end
 
   def load_property_options
-    @sites = Site.active.order(:name)
-    @buildings = Building.includes(:site).order("sites.name", :name)
-    @floors = Floor.includes(:site, :building).order("sites.name", "buildings.name", :level, :name)
-    @units = Unit.includes(:site, :building, :floor).order("sites.name", "buildings.name", "floors.level", "units.name")
-    @departments = Department.order(:name)
+    @sites = policy_scope(Site).active.order(:name)
+    @buildings = policy_scope(Building).includes(:site).order("sites.name", :name)
+    @floors = policy_scope(Floor).includes(:site, :building).order("sites.name", "buildings.name", :level, :name)
+    @units = policy_scope(Unit).includes(:site, :building, :floor).order("sites.name", "buildings.name", "floors.level", "units.name")
+    @departments = policy_scope(Department).order(:name)
     @assignable_roles = assignable_roles
+  end
+
+  # Site-scoped staff can only create or move users inside their own sites.
+  # When the form leaves the site blank, the user joins the actor's site.
+  def assign_site_for_write!(attrs)
+    return unless site_restricted?
+
+    requested = attrs[:current_site_id].presence
+    ensure_site_access!(requested)
+
+    if attrs[:building_id].present?
+      ensure_site_access!(Building.find_by(id: attrs[:building_id])&.site_id)
+    end
+
+    if attrs[:floor_id].present?
+      ensure_site_access!(Floor.find_by(id: attrs[:floor_id])&.site_id)
+    end
+
+    if attrs[:unit_id].present?
+      unit = Unit.find_by(id: attrs[:unit_id])
+      ensure_site_access!(unit&.site_id)
+      attrs[:current_site_id] ||= unit&.site_id
+    end
+
+    attrs[:current_site_id] ||= current_site&.id
   end
 
   def assignable_roles

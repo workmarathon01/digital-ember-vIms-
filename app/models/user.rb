@@ -31,7 +31,9 @@ class User < ApplicationRecord
 
   normalizes :email, with: ->(email) { email.to_s.strip.downcase }
   normalizes :mobile, with: ->(mobile) { mobile.to_s.gsub(/\D/, "") }
+  normalizes :user_type, with: ->(user_type) { user_type.to_s.strip.parameterize(separator: "_") }
 
+  before_validation :sync_role_from_user_type
   before_validation :sync_residence_from_unit
   after_create :ensure_primary_residence
 
@@ -46,6 +48,19 @@ class User < ApplicationRecord
   scope :active, -> { where(active: true) }
   scope :pending_registration, -> { where(registration_status: "pending") }
   scope :with_role, -> { includes(:role) }
+  # Users whose primary site, or any of their resident associations, belongs to
+  # one of the supplied sites. Used to keep every screen inside a site boundary.
+  scope :for_sites, lambda { |site_ids|
+    ids = Array(site_ids).compact
+    if ids.empty?
+      none
+    else
+      where(
+        "users.current_site_id IN (:ids) OR users.id IN (SELECT user_id FROM user_sites WHERE site_id IN (:ids))",
+        ids: ids
+      )
+    end
+  }
   scope :search, lambda { |q|
     term = "%#{q.to_s.strip}%"
     where("firstname ILIKE :q OR lastname ILIKE :q OR email ILIKE :q OR mobile ILIKE :q", q: term)
@@ -73,7 +88,7 @@ class User < ApplicationRecord
   # Features are inherited from the user's current site. A user-level override
   # can grant or revoke an entitlement, but grants remain constrained to
   # features the site already exposes.
-  def effective_features(site = current_site)
+  def effective_features(site = working_site)
     site = Site.find_by(id: site) if site.is_a?(Integer)
     return Feature.none if site.blank?
 
@@ -85,18 +100,18 @@ class User < ApplicationRecord
     Feature.active.where(id: (base_ids | granted_ids) - revoked_ids).ordered
   end
 
-  def feature_keys(site = current_site)
+  def feature_keys(site = working_site)
     effective_features(site).pluck(:key)
   end
 
-  def feature_enabled?(feature, site = current_site)
+  def feature_enabled?(feature, site = working_site)
     feature = Feature.resolve(feature)
     return false if feature.blank?
 
     effective_features(site).exists?(id: feature.id)
   end
 
-  def feature_override_state(feature, site = current_site)
+  def feature_override_state(feature, site = working_site)
     feature = Feature.resolve(feature)
     site = Site.find_by(id: site) if site.is_a?(Integer)
     return "inherit" if feature.blank? || site.blank?
@@ -192,6 +207,41 @@ class User < ApplicationRecord
     role_key == "super_admin"
   end
 
+  # Every site this user is allowed to see. A resident can belong to several
+  # sites through user_sites; staff usually only have a current_site.
+  def accessible_site_ids
+    @accessible_site_ids ||= begin
+      ids = sites.pluck(:id)
+      ids << current_site_id if current_site_id.present?
+      ids.compact.uniq
+    end
+  end
+
+  # Site isolation starts as soon as the account is attached to a site. Users
+  # with no site yet keep the legacy "everything" view so an administrator can
+  # finish setting them up.
+  def site_restricted?
+    !super_admin? && accessible_site_ids.any?
+  end
+
+  def site_access?(site_id)
+    return true unless site_restricted?
+
+    site_id.present? && accessible_site_ids.include?(site_id.to_i)
+  end
+
+  # The site the session operates in. Falls back to one of the user's assigned
+  # sites when they have only been linked through `user_sites`.
+  def working_site
+    current_site || sites.order(:name).first
+  end
+
+  # Self-registered employees are approved with the staff role. Both markers
+  # are accepted so older accounts keep the same visitor defaults.
+  def employee?
+    user_type == "employee" || role_key == "staff"
+  end
+
   def admin?
     role_key == "admin"
   end
@@ -271,6 +321,19 @@ class User < ApplicationRecord
   end
 
   private
+
+  # The user type is the human-friendly role choice. Keep the actual role in
+  # sync with it instead of letting the two fields drift apart.
+  def sync_role_from_user_type
+    return if user_type.blank?
+
+    role = Role.find_by(key: user_type) ||
+           Role.where("LOWER(name) = ?", user_type.tr("_", " ")).first
+    return if role.blank?
+
+    self.role = role
+    self.user_type = role.key
+  end
 
   def acceptable_profile_image
     return unless profile_image.attached?

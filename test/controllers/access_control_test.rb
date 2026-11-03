@@ -200,7 +200,12 @@ class AccessControlTest < ActionDispatch::IntegrationTest
   test "visitor pass lifecycle with otp check-in" do
     sign_in(@admin.email)
 
-    post visitors_path, params: { visitor: { name: "Priya Guest", contact_no: "9876500002", purpose: "Meeting" } }
+    post visitors_path, params: {
+      visitor: {
+        name: "Priya Guest", contact_no: "9876500002", purpose: "Meeting",
+        expected_date: Date.current.iso8601, expected_time: "10:00"
+      }
+    }
     assert_redirected_to visitor_path(Visitor.last)
     visitor = Visitor.last
     assert_match(/\APASS-[A-Z0-9]{8}\z/, visitor.pass_code)

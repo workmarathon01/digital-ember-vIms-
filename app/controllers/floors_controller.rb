@@ -9,8 +9,8 @@ class FloorsController < ApplicationController
     @floors = @floors.where(building_id: params[:building_id]) if params[:building_id].present?
     @floors = @floors.search(params[:q]) if params[:q].present?
     @pagy, @floors = pagy(@floors, items: 25)
-    @sites = Site.order(:name)
-    @buildings = Building.includes(:site).order("sites.name", :name)
+    @sites = policy_scope(Site).order(:name)
+    @buildings = policy_scope(Building).includes(:site).order("sites.name", :name)
   end
 
   def show
@@ -26,7 +26,9 @@ class FloorsController < ApplicationController
 
   def create
     authorize Floor
-    @floor = Floor.new(floor_params)
+    attrs = floor_params
+    ensure_site_access!(Building.find_by(id: attrs[:building_id])&.site_id)
+    @floor = Floor.new(attrs)
 
     if @floor.save
       respond_to do |format|
@@ -47,8 +49,10 @@ class FloorsController < ApplicationController
 
   def update
     authorize @floor
+    attrs = floor_params
+    ensure_site_access!(Building.find_by(id: attrs[:building_id])&.site_id)
 
-    if @floor.update(floor_params)
+    if @floor.update(attrs)
       respond_to do |format|
         format.html { redirect_to @floor, notice: "Floor updated successfully." }
         format.json { render :show, status: :ok }
@@ -80,12 +84,12 @@ class FloorsController < ApplicationController
   private
 
   def set_floor
-    @floor = Floor.find(params[:id])
+    @floor = policy_scope(Floor).find(params[:id])
   end
 
   def load_options
-    @sites = Site.active.order(:name)
-    @buildings = Building.includes(:site).order("sites.name", :name)
+    @sites = policy_scope(Site).active.order(:name)
+    @buildings = policy_scope(Building).includes(:site).order("sites.name", :name)
   end
 
   def floor_params

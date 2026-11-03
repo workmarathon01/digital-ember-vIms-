@@ -10,15 +10,36 @@ class ApplicationController < ActionController::Base
 
   before_action :load_current_user
   before_action :require_authentication
-  helper_method :current_user, :authenticated?
+  helper_method :current_user, :authenticated?, :current_site, :site_restricted?
 
   # JSON clients authenticate with a Bearer JWT, not cookies, so CSRF tokens
   # and origin checks do not apply to them.
   skip_before_action :verify_authenticity_token, if: :json_request?
 
   rescue_from Pundit::NotAuthorizedError, with: :render_forbidden
+  rescue_from ActiveRecord::RecordNotFound, with: :render_not_found
 
   private
+
+  # The site the signed-in user is currently working in. All operational data
+  # (visitors, staff, residents, properties, activity) is filtered by it.
+  def current_site
+    @current_site ||= current_user&.working_site
+  end
+
+  def site_restricted?
+    authenticated? && current_user.site_restricted?
+  end
+
+  # Site-scoped users may only write records that belong to one of their own
+  # sites. `nil` site ids are allowed and filled in from the current site by
+  # the individual controllers.
+  def ensure_site_access!(site_id)
+    return if site_id.blank? || !site_restricted?
+    return if current_user.site_access?(site_id)
+
+    raise Pundit::NotAuthorizedError
+  end
 
   def load_current_user
     Current.request_ip = request.remote_ip
@@ -86,6 +107,15 @@ class ApplicationController < ActionController::Base
     respond_to do |format|
       format.html { redirect_to root_path, alert: "You are not authorized to perform that action." }
       format.json { render json: { error: { code: "forbidden", message: "You are not authorized to perform that action." } }, status: :forbidden }
+    end
+  end
+
+  # Scoped lookups use `policy_scope(Model).find`, so a record from another site
+  # behaves exactly like a missing record.
+  def render_not_found
+    respond_to do |format|
+      format.html { redirect_to root_path, alert: "Record not found." }
+      format.json { render json: { error: { code: "not_found", message: "Record not found." } }, status: :not_found }
     end
   end
 end

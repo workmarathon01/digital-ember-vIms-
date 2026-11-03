@@ -26,7 +26,7 @@ class SiteFeaturesController < ApplicationController
   private
 
   def set_site
-    @site = Site.find(params[:site_id])
+    @site = policy_scope(Site).find(params[:site_id])
   end
 
   def load_feature_state

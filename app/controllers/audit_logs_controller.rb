@@ -6,5 +6,6 @@ class AuditLogsController < ApplicationController
     @logs = @logs.where(resource_type: params[:resource_type]) if params[:resource_type].present?
     @logs = @logs.where(action: params[:action]) if params[:action].present?
     @pagy, @logs = pagy(@logs.includes(:actor), items: 50)
+    @actors = policy_scope(User).active.order(:firstname)
   end
 end

@@ -80,7 +80,7 @@ class SitesController < ApplicationController
   private
 
   def set_site
-    @site = Site.find(params[:id])
+    @site = policy_scope(Site).find(params[:id])
   end
 
   def site_params

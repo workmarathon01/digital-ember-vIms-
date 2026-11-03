@@ -19,23 +19,24 @@ json.pending_registration user.pending_registration?
 json.reviewed_by_name user.reviewed_by&.full_name
 json.profile_image_url user.profile_image.attached? ? rails_blob_url(user.profile_image, host: request.host_with_port, protocol: request.protocol) : nil
 json.locked_out user.locked_out?
-json.site_name user.current_site&.name
+json.site_name user.working_site&.name
 json.building_name user.building&.name
 json.floor_name user.floor&.name
 json.unit_name user.unit&.name
 json.residence_label user.residence_label
 
 if local_assigns[:include_features]
+  feature_site = user.working_site
   # When the catalog is empty (for example before seeds run), the frontend
   # should not hide every feature-gated menu item. feature_keys is only
-  # emitted when the user has a current site, so it remains nil otherwise.
+  # emitted when the user has a site, so it remains nil otherwise.
   json.features_configured Feature.active.exists?
   # Always emit an array once the catalog is configured. A missing key is
   # reserved for older sessions, which should keep the navigation permissive.
-  json.feature_keys(user.current_site.present? ? user.feature_keys : [])
+  json.feature_keys(feature_site.present? ? user.feature_keys(feature_site) : [])
   json.permissions user.permission_keys
-  if user.current_site.present?
-    json.effective_features user.effective_features do |feature|
+  if feature_site.present?
+    json.effective_features user.effective_features(feature_site) do |feature|
       json.extract! feature, :id, :key, :name, :category
     end
   end

@@ -17,7 +17,7 @@ class StaffsController < ApplicationController
 
   def new
     authorize Staff
-    @staff = Staff.new(created_by: current_user)
+    @staff = Staff.new(created_by: current_user, site_id: current_site&.id)
   end
 
   def edit
@@ -26,7 +26,15 @@ class StaffsController < ApplicationController
 
   def create
     authorize Staff
-    @staff = Staff.new(staff_params.merge(created_by: current_user))
+    attrs = staff_params
+    ensure_site_access!(attrs[:site_id])
+    if attrs[:unit_id].present?
+      unit = Unit.find_by(id: attrs[:unit_id])
+      ensure_site_access!(unit&.site_id)
+      attrs[:site_id] ||= unit&.site_id
+    end
+    attrs[:site_id] ||= current_site&.id
+    @staff = Staff.new(attrs.merge(created_by: current_user))
 
     if @staff.save
       respond_to do |format|
@@ -43,7 +51,14 @@ class StaffsController < ApplicationController
 
   def update
     authorize @staff
-    if @staff.update(staff_params)
+    attrs = staff_params
+    ensure_site_access!(attrs[:site_id])
+    if attrs[:unit_id].present?
+      ensure_site_access!(Unit.find_by(id: attrs[:unit_id])&.site_id)
+    end
+    attrs[:site_id] ||= @staff.site_id || current_site&.id
+
+    if @staff.update(attrs)
       redirect_to @staff, notice: "Staff updated successfully."
     else
       render :edit, status: :unprocessable_entity
@@ -83,7 +98,7 @@ class StaffsController < ApplicationController
   private
 
   def set_staff
-    @staff = Staff.includes(:created_by).find(params[:id])
+    @staff = policy_scope(Staff).includes(:created_by).find(params[:id])
   end
 
   def staff_params
@@ -96,7 +111,7 @@ class StaffsController < ApplicationController
   end
 
   def load_property_options
-    @sites = Site.active.order(:name)
-    @units = Unit.includes(:site, :building, :floor).order("sites.name", "buildings.name", "floors.level", "units.name")
+    @sites = policy_scope(Site).active.order(:name)
+    @units = policy_scope(Unit).includes(:site, :building, :floor).order("sites.name", "buildings.name", "floors.level", "units.name")
   end
 end

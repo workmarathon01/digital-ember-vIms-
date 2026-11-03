@@ -14,7 +14,10 @@ class DepartmentsController < ApplicationController
 
   def create
     authorize Department
-    @department = Department.new(department_params)
+    attrs = department_params
+    ensure_site_access!(attrs[:site_id])
+    attrs[:site_id] ||= current_site&.id
+    @department = Department.new(attrs)
 
     if @department.save
       render :show, status: :created
@@ -25,8 +28,13 @@ class DepartmentsController < ApplicationController
 
   def update
     authorize @department
+    attrs = department_params
+    ensure_site_access!(attrs[:site_id])
+    # Keep legacy departments attached to whichever site is editing them; a
+    # site-scoped user must not be able to turn one into a global department.
+    attrs[:site_id] ||= @department.site_id || current_site&.id
 
-    if @department.update(department_params)
+    if @department.update(attrs)
       render :show, status: :ok
     else
       render_validation_errors(@department)
@@ -46,11 +54,11 @@ class DepartmentsController < ApplicationController
   private
 
   def set_department
-    @department = Department.find(params[:id])
+    @department = policy_scope(Department).find(params[:id])
   end
 
   def department_params
-    params.require(:department).permit(:name, :code, :description, :active)
+    params.require(:department).permit(:name, :code, :description, :active, :site_id)
   end
 
   def render_validation_errors(record)

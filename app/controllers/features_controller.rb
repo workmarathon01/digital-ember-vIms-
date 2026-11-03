@@ -18,7 +18,7 @@ class FeaturesController < ApplicationController
 
   def show
     authorize @feature
-    @sites = @feature.sites.order(:name)
+    @sites = policy_scope(Site).where(id: @feature.site_ids).order(:name)
   end
 
   def new

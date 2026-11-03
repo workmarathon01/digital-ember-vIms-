@@ -22,8 +22,24 @@ class ApplicationPolicy
       @scope = scope
     end
 
+    # Every model that stores a `site_id` is automatically limited to the
+    # sites the user is attached to. Catalogs without a site (features, roles)
+    # stay global.
     def resolve
-      scope.all
+      return scope.all unless site_restricted?
+      return scope.all unless model.column_names.include?("site_id")
+
+      scope.where(site_id: user.accessible_site_ids)
+    end
+
+    private
+
+    def model
+      scope.is_a?(Class) ? scope : scope.klass
+    end
+
+    def site_restricted?
+      user.present? && user.site_restricted?
     end
   end
 

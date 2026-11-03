@@ -17,7 +17,9 @@ class VisitorsController < ApplicationController
 
   def new
     authorize Visitor
-    @visitor = Visitor.new(created_by: current_user)
+    @visitor = Visitor.new(
+      { created_by: current_user, site_id: current_site&.id }.merge(employee_visitor_defaults)
+    )
   end
 
   def edit
@@ -26,24 +28,35 @@ class VisitorsController < ApplicationController
 
   def create
     authorize Visitor
-    @visitor = Visitor.new(visitor_params.merge(created_by: current_user))
+    attrs = visitor_params
+    apply_employee_defaults!(attrs)
+    ensure_location_access!(attrs)
+    attrs[:site_id] ||= current_site&.id
+    # The creator is always the signed-in user. Accept the field from the
+    # client for API symmetry, but never trust its value.
+    attrs[:created_by_id] = current_user.id
+    @visitor = Visitor.new(attrs.merge(created_by: current_user))
+    add_expected_visit_errors(attrs)
 
-    if @visitor.save
+    if @visitor.errors.empty? && @visitor.save
       respond_to do |format|
         format.html { redirect_to @visitor, notice: "Visitor pass #{@visitor.pass_code} issued successfully." }
         format.json { render :show, status: :created }
       end
     else
-      respond_to do |format|
-        format.html { render :new, status: :unprocessable_entity }
-        format.json { render json: { error: { code: "validation_failed", message: @visitor.errors.full_messages.join(", ") } }, status: :unprocessable_entity }
-      end
+      render_visitor_errors
     end
   end
 
   def update
     authorize @visitor
-    if @visitor.update(visitor_params)
+    attrs = visitor_params
+    # The original creator must never change when the visitor is edited.
+    attrs.delete(:created_by_id)
+    ensure_location_access!(attrs)
+    attrs[:site_id] ||= @visitor.site_id || current_site&.id
+
+    if @visitor.update(attrs)
       redirect_to @visitor, notice: "Visitor updated successfully."
     else
       render :edit, status: :unprocessable_entity
@@ -98,12 +111,82 @@ class VisitorsController < ApplicationController
   private
 
   def set_visitor
-    @visitor = Visitor.includes(:created_by).find(params[:id])
+    @visitor = policy_scope(Visitor).includes(:created_by).find(params[:id])
+  end
+
+  def add_expected_visit_errors(attrs)
+    @visitor.errors.add(:expected_date, "can't be blank") if attrs[:expected_date].blank?
+    @visitor.errors.add(:expected_time, "can't be blank") if attrs[:expected_time].blank?
+  end
+
+  def render_visitor_errors
+    respond_to do |format|
+      format.html { render :new, status: :unprocessable_entity }
+      format.json do
+        render json: {
+          error: {
+            code: "validation_failed",
+            message: @visitor.errors.full_messages.join(", ")
+          }
+        }, status: :unprocessable_entity
+      end
+    end
+  end
+
+  # Employees create visitors from their own workplace: use their unit,
+  # building, floor and site, and make them the host unless another host was
+  # explicitly chosen.
+  def employee_visitor_defaults
+    return {} unless current_user.employee?
+
+    {
+      building_id: current_user.building_id,
+      floor_id: current_user.floor_id,
+      unit_id: current_user.unit_id,
+      vhost_id: current_user.id
+    }.compact
+  end
+
+  def apply_employee_defaults!(attrs)
+    return unless current_user.employee?
+
+    default_site_id = current_user.current_site_id || current_site&.id
+    attrs[:site_id] = attrs[:site_id].presence || default_site_id
+    # Only inherit the employee's own location when the visitor is for that
+    # site. A multi-site employee can deliberately pick another site.
+    return unless attrs[:site_id].to_i == default_site_id.to_i
+
+    attrs[:building_id] = attrs[:building_id].presence || current_user.building_id
+    attrs[:floor_id] = attrs[:floor_id].presence || current_user.floor_id
+    attrs[:unit_id] = attrs[:unit_id].presence || current_user.unit_id
+    return if attrs[:vhost_id].present?
+
+    unit_id = attrs[:unit_id].to_i
+    attrs[:vhost_id] = current_user.id if unit_id.zero? || current_user.unit_id.to_i == unit_id
+  end
+
+  # A visitor can be attached through any location field in the payload, so
+  # every one of them has to belong to the actor's site, not just `site_id`.
+  def ensure_location_access!(attrs)
+    ensure_site_access!(attrs[:site_id])
+    ensure_site_access!(Building.find_by(id: attrs[:building_id])&.site_id) if attrs[:building_id].present?
+    ensure_site_access!(Floor.find_by(id: attrs[:floor_id])&.site_id) if attrs[:floor_id].present?
+    if attrs[:unit_id].present?
+      unit = Unit.find_by(id: attrs[:unit_id])
+      ensure_site_access!(unit&.site_id)
+      attrs[:site_id] ||= unit&.site_id
+    end
+    return unless attrs[:vhost_id].present? && site_restricted?
+
+    # The host only has to belong to the visitor's site. Do not run this
+    # through UserPolicy, which hides super admins from regular user lists.
+    site_id = attrs[:site_id] || current_site&.id
+    raise Pundit::NotAuthorizedError unless site_id.present? && User.for_sites([ site_id ]).exists?(id: attrs[:vhost_id])
   end
 
   def visitor_params
     params.require(:visitor).permit(
-      :name, :contact_no, :purpose, :site_id, :status, :start_pass, :end_pass,
+      :name, :contact_no, :purpose, :site_id, :status, :start_pass, :end_pass, :created_by_id,
       :coming_from, :vehicle_number, :expected_date, :expected_time, :skip_host_approval,
       :goods_inwards, :visit_type, :frequency, :working_days, :pass_number,
       :visitor_staff_category_id, :parking_slot, :visitor_in_out, :vhost_id, :verified,
@@ -114,10 +197,10 @@ class VisitorsController < ApplicationController
   end
 
   def load_property_options
-    @sites = Site.active.order(:name)
-    @buildings = Building.includes(:site).order("sites.name", :name)
-    @floors = Floor.includes(:site, :building).order("sites.name", "buildings.name", :level, :name)
-    @units = Unit.includes(:site, :building, :floor).order("sites.name", "buildings.name", "floors.level", "units.name")
-    @hosts = User.active.includes(:role).order(:firstname, :lastname)
+    @sites = policy_scope(Site).active.order(:name)
+    @buildings = policy_scope(Building).includes(:site).order("sites.name", :name)
+    @floors = policy_scope(Floor).includes(:site, :building).order("sites.name", "buildings.name", :level, :name)
+    @units = policy_scope(Unit).includes(:site, :building, :floor).order("sites.name", "buildings.name", "floors.level", "units.name")
+    @hosts = policy_scope(User).active.includes(:role).order(:firstname, :lastname)
   end
 end

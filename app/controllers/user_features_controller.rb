@@ -38,11 +38,12 @@ class UserFeaturesController < ApplicationController
   private
 
   def set_user
-    @user = User.find(params[:user_id])
+    @user = policy_scope(User).find(params[:user_id])
   end
 
   def set_site
-    @site = Site.find_by(id: params[:site_id]) || @user.current_site
+    @site = policy_scope(Site).find_by(id: params[:site_id]) ||
+            policy_scope(Site).find_by(id: @user.current_site_id)
   end
 
   def load_feature_state
