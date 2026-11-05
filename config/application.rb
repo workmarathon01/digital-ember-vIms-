@@ -21,7 +21,11 @@ module LectAndNect
     # These settings can be overridden in specific environments using the files
     # in config/environments, which are processed later.
     #
-    # config.time_zone = "Central Time (US & Canada)"
+    # All timestamps are displayed in Indian Standard Time (UTC+05:30).
+    # The database keeps storing UTC, so existing data stays valid and
+    # timezone changes remain a display-only concern.
+    config.time_zone = "Asia/Kolkata"
+    config.active_record.default_timezone = :utc
     # config.eager_load_paths << Rails.root.join("extras")
   end
 end

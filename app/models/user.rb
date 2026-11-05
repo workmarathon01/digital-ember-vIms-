@@ -29,8 +29,6 @@ class User < ApplicationRecord
   has_many :created_visitors, class_name: "Visitor", foreign_key: :created_by_id, dependent: :nullify
   has_many :created_staffs, class_name: "Staff", foreign_key: :created_by_id, dependent: :nullify
 
-  # One row per app installation (phone, tablet, browser). Deleting a user is
-  # rare, so skip per-row callbacks for speed.
   has_many :push_tokens, dependent: :delete_all
 
   normalizes :email, with: ->(email) { email.to_s.strip.downcase }
@@ -177,9 +175,7 @@ class User < ApplicationRecord
     registration_status == "rejected"
   end
 
-  # Self-registered employees stay inactive until an administrator approves
-  # them. Approval assigns the default staff role when no role was set, so the
-  # new employee can use the modules their role allows without an extra step.
+ 
   def approve_registration!(reviewer, note: nil)
     assign_attributes(
       registration_status: "approved",
@@ -211,8 +207,7 @@ class User < ApplicationRecord
     role_key == "super_admin"
   end
 
-  # Every site this user is allowed to see. A resident can belong to several
-  # sites through user_sites; staff usually only have a current_site.
+
   def accessible_site_ids
     @accessible_site_ids ||= begin
       ids = sites.pluck(:id)
@@ -221,9 +216,7 @@ class User < ApplicationRecord
     end
   end
 
-  # Site isolation starts as soon as the account is attached to a site. Users
-  # with no site yet keep the legacy "everything" view so an administrator can
-  # finish setting them up.
+
   def site_restricted?
     !super_admin? && accessible_site_ids.any?
   end
@@ -234,14 +227,11 @@ class User < ApplicationRecord
     site_id.present? && accessible_site_ids.include?(site_id.to_i)
   end
 
-  # The site the session operates in. Falls back to one of the user's assigned
-  # sites when they have only been linked through `user_sites`.
   def working_site
     current_site || sites.order(:name).first
   end
 
-  # Self-registered employees are approved with the staff role. Both markers
-  # are accepted so older accounts keep the same visitor defaults.
+
   def employee?
     user_type == "employee" || role_key == "staff"
   end
@@ -326,8 +316,6 @@ class User < ApplicationRecord
 
   private
 
-  # The user type is the human-friendly role choice. Keep the actual role in
-  # sync with it instead of letting the two fields drift apart.
   def sync_role_from_user_type
     return if user_type.blank?
 
