@@ -32,6 +32,42 @@
   <% end %>
 </section>
 
+<% if @banners.any? %>
+  <section class="panel pad" style="margin-top: 20px;">
+    <div class="page-title">
+      <h2>Site banners</h2>
+      <% if current_user.can?(:banners, :read) %>
+        <%= link_to "Manage banners", banners_path %>
+      <% end %>
+    </div>
+    <div class="metric-grid">
+      <% @banners.each do |banner| %>
+        <article>
+          <span><%= banner.title %></span>
+          <% if banner.description.present? %>
+            <p class="muted"><%= banner.description %></p>
+          <% end %>
+          <% banner.attachments.each do |attachment| %>
+            <p>
+              <% if attachment.blob.image? %>
+                <%= link_to image_tag(url_for(attachment), alt: attachment.blob.filename.to_s, style: "max-width: 220px; border-radius: 8px;"),
+                            url_for(attachment), target: "_blank", rel: "noopener noreferrer" %>
+              <% else %>
+                <%= link_to attachment.blob.filename.to_s, url_for(attachment), target: "_blank", rel: "noopener noreferrer" %>
+              <% end %>
+            </p>
+          <% end %>
+          <% Array(banner.external_urls).each do |url| %>
+            <p>
+              <%= link_to url, url, target: "_blank", rel: "noopener noreferrer" %>
+            </p>
+          <% end %>
+        </article>
+      <% end %>
+    </div>
+  </section>
+<% end %>
+
 <% if current_user.can?(:audit_logs, :read) %>
   <section class="panel pad">
     <div class="page-title">

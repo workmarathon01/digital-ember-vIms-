@@ -1,0 +1,68 @@
+<section class="page-title"><h1><%= banner.persisted? ? "Edit Banner" : "New Banner" %></h1></section>
+
+<%= form_with model: banner, class: "form-grid" do |form| %>
+  <%= render "shared/errors", record: banner %>
+
+  <fieldset>
+    <legend>Banner details</legend>
+    <% if current_user.super_admin? %>
+      <label>Site <%= form.select :site_id, site_options(@sites), include_blank: "Select a site", required: true %></label>
+    <% else %>
+      <%= form.hidden_field :site_id, value: banner.site_id || current_site&.id %>
+    <% end %>
+    <label>Title <%= form.text_field :title, required: true, maxlength: 160 %></label>
+    <label>Description <%= form.text_area :description, rows: 4, maxlength: 2000 %></label>
+    <label>Sort order <%= form.number_field :sort_order %></label>
+    <label class="checkbox"><%= form.check_box :active %> Show this banner</label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Uploaded files</legend>
+    <% if banner.attachments.attached? %>
+      <div class="actions" style="align-items: flex-start;">
+        <% banner.attachments.each do |attachment| %>
+          <div class="panel pad" style="max-width: 260px;">
+            <% if attachment.blob.image? %>
+              <%= link_to url_for(attachment), target: "_blank", rel: "noopener noreferrer" do %>
+                <%= image_tag url_for(attachment), alt: attachment.blob.filename.to_s, class: "profile-photo" %>
+              <% end %>
+            <% end %>
+            <p><%= link_to attachment.blob.filename.to_s, url_for(attachment), target: "_blank", rel: "noopener noreferrer" %></p>
+            <label class="checkbox">
+              <%= check_box_tag "banner[remove_attachment_ids][]", attachment.id, false, id: "remove_attachment_#{attachment.id}" %>
+              Remove this file
+            </label>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <label>
+      Add files
+      <%= form.file_field :attachments,
+                          multiple: true,
+                          accept: Banner::ALLOWED_UPLOAD_TYPES.join(",") %>
+      <span class="muted">
+        Images (JPEG, PNG, WebP, GIF) or PDF, up to <%= number_to_human_size(Banner::MAX_UPLOAD_BYTES) %> each
+        and <%= Banner::MAX_ATTACHMENTS %> files per banner.
+      </span>
+    </label>
+  </fieldset>
+
+  <fieldset>
+    <legend>External URLs</legend>
+    <label>
+      One URL per line
+      <%= form.text_area :external_urls,
+                         value: Array(banner.external_urls).join("\n"),
+                         rows: 5,
+                         placeholder: "https://example.com/brochure.pdf\nhttps://example.com/image.jpg" %>
+      <span class="muted">Up to <%= Banner::MAX_ATTACHMENTS %> external http(s) links. Each link opens in a new tab.</span>
+    </label>
+  </fieldset>
+
+  <div class="form-actions">
+    <%= form.submit %>
+    <%= link_to "Cancel", banner.persisted? ? banner : banners_path %>
+  </div>
+<% end %>

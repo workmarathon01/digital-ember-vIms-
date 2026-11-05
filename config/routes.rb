@@ -42,6 +42,10 @@ Rails.application.routes.draw do
     resource :features, only: %i[show update], controller: "site_features", as: :features
   end
 
+  # Site-specific banners. The controller scopes the collection to the
+  # signed-in user's working site unless a privileged user selects another site.
+  resources :banners
+
   resources :buildings
   resources :floors
   resources :units

@@ -10,3 +10,7 @@ json.attendance_open @attendance_open
 json.recent_activity @recent_activity do |log|
   json.partial! "audit_logs/audit_log", log: log
 end
+
+json.banners @banners do |banner|
+  json.partial! "banners/banner", banner: banner
+end

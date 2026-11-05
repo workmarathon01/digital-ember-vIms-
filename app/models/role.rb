@@ -8,6 +8,7 @@ class Role < ApplicationRecord
     { key: "site_features", label: "Site Feature Access", actions: %w[read update] },
     { key: "user_features", label: "User Feature Access", actions: %w[read update] },
     { key: "sites", label: "Sites", actions: %w[read create update destroy] },
+    { key: "banners", label: "Banners", actions: %w[read create update destroy] },
     { key: "buildings", label: "Buildings", actions: %w[read create update destroy] },
     { key: "floors", label: "Floors", actions: %w[read create update destroy] },
     { key: "units", label: "Units", actions: %w[read create update destroy] },

@@ -13,6 +13,7 @@ class Site < ApplicationRecord
   has_many :user_features, dependent: :destroy, inverse_of: :site
   has_many :staffs, dependent: :restrict_with_error
   has_many :visitors, dependent: :restrict_with_error
+  has_many :banners, dependent: :destroy, inverse_of: :site
 
   normalizes :code, with: ->(code) { code.to_s.strip.upcase }
   normalizes :name, with: ->(name) { name.to_s.strip.squish }

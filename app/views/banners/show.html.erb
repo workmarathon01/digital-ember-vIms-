@@ -1,0 +1,54 @@
+<section class="page-title">
+  <div>
+    <h1><%= @banner.title %></h1>
+    <p class="muted">Site: <%= link_to @banner.site.display_name, @banner.site %></p>
+  </div>
+  <div class="actions">
+    <%= link_to "Edit", edit_banner_path(@banner), class: "button" if policy(@banner).edit? %>
+    <%= button_to "Delete", @banner, method: :delete, class: "danger" if policy(@banner).destroy? %>
+  </div>
+</section>
+
+<dl class="details">
+  <dt>Site</dt><dd><%= link_to @banner.site.display_name, @banner.site %></dd>
+  <dt>Status</dt><dd><span class="pill <%= "ok" if @banner.active? %>"><%= @banner.active? ? "Active" : "Inactive" %></span></dd>
+  <dt>Sort order</dt><dd><%= @banner.sort_order %></dd>
+  <dt>Description</dt><dd><%= @banner.description.presence || "-" %></dd>
+</dl>
+
+<section class="panel pad" style="margin-top: 20px;">
+  <h2>Uploaded files</h2>
+  <% if @banner.attachments.attached? %>
+    <div class="actions" style="align-items: flex-start;">
+      <% @banner.attachments.each do |attachment| %>
+        <div class="panel pad" style="max-width: 260px;">
+          <% if attachment.blob.image? %>
+            <%= link_to url_for(attachment), target: "_blank", rel: "noopener noreferrer" do %>
+              <%= image_tag url_for(attachment), alt: attachment.blob.filename.to_s, class: "profile-photo" %>
+            <% end %>
+          <% end %>
+          <%= link_to attachment.blob.filename.to_s, url_for(attachment), target: "_blank", rel: "noopener noreferrer" %>
+          <p class="muted"><%= number_to_human_size(attachment.blob.byte_size) %> · <%= attachment.blob.content_type %></p>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="muted">No files uploaded yet.</p>
+  <% end %>
+</section>
+
+<section class="panel pad" style="margin-top: 20px;">
+  <h2>External links</h2>
+  <% urls = Array(@banner.external_urls) %>
+  <% if urls.any? %>
+    <ul>
+      <% urls.each do |url| %>
+        <li>
+          <%= link_to url, url, target: "_blank", rel: "noopener noreferrer" %>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="muted">No external URLs added yet.</p>
+  <% end %>
+</section>

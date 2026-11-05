@@ -21,5 +21,14 @@ class DashboardController < ApplicationController
       else
         []
       end
+
+    # Banners are site content, not a permission-gated catalogue: every
+    # signed-in user on a site can see its active banners on the dashboard.
+    @banners =
+      if current_site.present?
+        current_site.banners.active.ordered.with_attached_attachments.limit(10)
+      else
+        Banner.none
+      end
   end
 end

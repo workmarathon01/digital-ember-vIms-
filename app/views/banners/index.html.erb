@@ -1,0 +1,52 @@
+<section class="page-title">
+  <div>
+    <h1>Banners</h1>
+    <p class="muted">Site-specific announcements with title, description and external links.</p>
+  </div>
+  <% if current_user.can?(:banners, :create) %>
+    <%= link_to "New banner", new_banner_path(site_id: params[:site_id]), class: "button" %>
+  <% end %>
+</section>
+
+<%= form_with url: banners_path, method: :get, class: "filters" do |form| %>
+  <label>Search <%= form.search_field :q, value: params[:q], placeholder: "Banner title" %></label>
+  <% if current_user.super_admin? %>
+    <label>Site <%= form.select :site_id, site_options(@sites), include_blank: "All sites", selected: params[:site_id] %></label>
+  <% end %>
+  <label>Status
+    <%= form.select :status, options_for_select([ [ "Active", "active" ], [ "Inactive", "inactive" ] ], params[:status]), include_blank: "All" %>
+  </label>
+  <%= form.submit "Filter" %>
+  <%= link_to "Clear", banners_path %>
+<% end %>
+
+<section class="panel">
+  <table>
+    <thead>
+      <tr><th>Banner</th><th>Site</th><th>Attachments</th><th>Status</th><th>Order</th><th></th></tr>
+    </thead>
+    <tbody>
+      <% @banners.each do |banner| %>
+        <tr>
+          <td>
+            <strong><%= link_to banner.title, banner %></strong>
+            <% if banner.description.present? %>
+              <p class="muted"><%= truncate(banner.description, length: 100) %></p>
+            <% end %>
+          </td>
+          <td><%= link_to banner.site.display_name, banner.site %></td>
+          <td><%= pluralize(Array(banner.external_urls).size + banner.attachments.size, "attachment") %></td>
+          <td><span class="pill <%= "ok" if banner.active? %>"><%= banner.active? ? "Active" : "Inactive" %></span></td>
+          <td><%= banner.sort_order %></td>
+          <td><%= link_to "Open", banner %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+
+  <% if @banners.empty? %>
+    <p class="muted">No banners found for this site.</p>
+  <% end %>
+</section>
+
+<%= render "shared/pagination", pagy: @pagy %>
