@@ -85,5 +85,21 @@ Rails.application.routes.draw do
   resources :roles
   resources :audit_logs, only: %i[index]
 
+  # Mobile app API. Authenticated with the same Bearer JWT as the rest of the
+  # JSON API. Device registration is scoped to the signed-in user.
+  namespace :api, defaults: { format: :json } do
+    namespace :v1 do
+      resources :push_tokens, param: :uuid, only: %i[index show create update destroy] do
+        collection do
+          delete :unregister_all
+        end
+
+        member do
+          post :test_notification
+        end
+      end
+    end
+  end
+
   root "dashboard#show"
 end

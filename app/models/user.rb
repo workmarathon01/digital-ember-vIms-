@@ -29,6 +29,10 @@ class User < ApplicationRecord
   has_many :created_visitors, class_name: "Visitor", foreign_key: :created_by_id, dependent: :nullify
   has_many :created_staffs, class_name: "Staff", foreign_key: :created_by_id, dependent: :nullify
 
+  # One row per app installation (phone, tablet, browser). Deleting a user is
+  # rare, so skip per-row callbacks for speed.
+  has_many :push_tokens, dependent: :delete_all
+
   normalizes :email, with: ->(email) { email.to_s.strip.downcase }
   normalizes :mobile, with: ->(mobile) { mobile.to_s.gsub(/\D/, "") }
   normalizes :user_type, with: ->(user_type) { user_type.to_s.strip.parameterize(separator: "_") }
