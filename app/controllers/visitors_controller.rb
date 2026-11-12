@@ -8,11 +8,12 @@ class VisitorsController < ApplicationController
     @visitors = @visitors.search(params[:q]) if params[:q].present?
     @visitors = @visitors.where(visit_type: params[:visit_type]) if params[:visit_type].present?
     @visitors = @visitors.where(visitor_in_out: params[:in_out]) if params[:in_out].present?
-    @pagy, @visitors = pagy(@visitors.order(created_at: :desc), items: 10)
+    @pagy, @visitors = pagy(@visitors.order(created_at: :desc), items: 15)
   end
 
   def show
     authorize @visitor
+    load_visitor_history
   end
 
   def new
@@ -82,18 +83,36 @@ class VisitorsController < ApplicationController
 
   def check_in
     authorize @visitor, :check_in?
-    if @visitor.verify_otp(params[:otp])
-      @visitor.mark_checked_in!
-      redirect_to @visitor, notice: "Visitor checked in successfully under pass #{@visitor.pass_code}."
-    else
-      redirect_to @visitor, alert: "Invalid or expired OTP."
+    unless visitor_verified_for_gate?
+      return render_gate_error("invalid_otp", "Invalid or expired OTP.")
     end
+
+    result = VisitorGate.check_in(
+      @visitor,
+      occurred_at: movement_time,
+      source: "staff",
+      recorded_by: current_user,
+      ip: request.remote_ip
+    )
+
+    render_gate_result(
+      result,
+      success_message: "Visitor checked in successfully under pass #{@visitor.pass_code}.",
+      duplicate_message: "Visitor was already checked in; no new entry was recorded."
+    )
   end
 
   def check_out
     authorize @visitor, :check_out?
-    @visitor.mark_checked_out!
-    redirect_to @visitor, notice: "Visitor checked out successfully."
+    result = VisitorGate.check_out(
+      @visitor,
+      occurred_at: movement_time,
+      source: "staff",
+      recorded_by: current_user,
+      ip: request.remote_ip
+    )
+
+    render_gate_result(result, success_message: "Visitor checked out successfully.")
   end
 
   # Re-send the public pass link to the visitor's mobile number.
@@ -112,6 +131,54 @@ class VisitorsController < ApplicationController
 
   def set_visitor
     @visitor = policy_scope(Visitor).includes(:created_by).find(params[:id])
+  end
+
+  def load_visitor_history
+    @visitor_stays = @visitor.visit_history
+    @current_stay = @visitor_stays.find(&:ongoing?)
+    @visitor_movements = @visitor.visitor_movements.recent_first.includes(:recorded_by)
+  end
+
+  # Security desk, gate security and super admins identify the visitor in
+  # person, so their movement does not need the pass OTP. Other roles keep the
+  # existing OTP verification.
+  def visitor_verified_for_gate?
+    current_user.can_mark_visitor_directly? || @visitor.verify_otp(params[:otp])
+  end
+
+  def render_gate_result(result, success_message:, duplicate_message: nil)
+    if result.success?
+      message = result.duplicate? ? duplicate_message : success_message
+      respond_to do |format|
+        format.html { redirect_to @visitor, notice: message }
+        format.json do
+          load_visitor_history
+          render :show, status: :ok
+        end
+      end
+    else
+      render_gate_error(result.error_code, result.error_message)
+    end
+  end
+
+  def render_gate_error(code, message)
+    respond_to do |format|
+      format.html { redirect_to @visitor, alert: message }
+      format.json do
+        render json: { error: { code: code.to_s, message: message } },
+               status: :unprocessable_entity
+      end
+    end
+  end
+
+  # Staff may back-date a movement from the visitor page. A blank or invalid
+  # value falls back to the current time.
+  def movement_time
+    return Time.current if params[:occurred_at].blank?
+
+    Time.zone.parse(params[:occurred_at].to_s) || Time.current
+  rescue ArgumentError
+    Time.current
   end
 
   def add_expected_visit_errors(attrs)

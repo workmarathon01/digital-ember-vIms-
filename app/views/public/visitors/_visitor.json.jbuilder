@@ -8,6 +8,7 @@ json.extract! visitor, :id, :name, :contact_no, :purpose, :pass_code, :pass_numb
 json.checked_in visitor.checked_in?
 json.pass_active visitor.pass_active?
 json.checked_in_at visitor.qr_checked_in_at
+json.last_movement_at visitor.last_movement_at
 json.site_name visitor.site&.name
 json.building_name visitor.building&.name
 json.floor_name visitor.floor&.name

@@ -248,6 +248,12 @@ class User < ApplicationRecord
     %w[security gate_security].include?(role_key)
   end
 
+  # Security desk, gate security and super admins already identify visitors in
+  # person at the gate, so they may record a movement without the pass OTP.
+  def can_mark_visitor_directly?
+    super_admin? || security?
+  end
+
   def can?(resource, action)
     super_admin? || role&.can?(resource, action)
   end

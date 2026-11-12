@@ -72,6 +72,7 @@ Rails.application.routes.draw do
     get "visitors/pass", to: "visitors#pass", as: :visitor_pass
     get "visitors/verify", to: "visitors#verify", as: :visitor_verify
     post "visitors/check_in", to: "visitors#check_in", as: :visitor_check_in
+    post "visitors/check_out", to: "visitors#check_out", as: :visitor_check_out
     post "visitors", to: "visitors#create", as: :visitors
     get "hosts", to: "visitors#hosts", as: :hosts
     get "form_options", to: "visitors#form_options", as: :form_options

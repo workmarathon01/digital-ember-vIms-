@@ -42,6 +42,13 @@
       <span class="pill <%= "ok" if @visitor.checked_in? %>"><%= @visitor.visitor_in_out.presence || "Pending" %></span>
       <%= "expired" unless @visitor.pass_active? %>
     </dd>
+    <dt>Current stay</dt><dd>
+      <% if @current_stay %>
+        Since <%= @current_stay.checked_in_at.to_fs(:short) %> (<%= @current_stay.duration_in_words %>)
+      <% else %>
+        -
+      <% end %>
+    </dd>
     <dt>Verified</dt><dd><%= @visitor.verified? ? "Yes" : "No" %></dd>
   </dl>
 
@@ -55,12 +62,93 @@
     <% end %>
     <% if current_user.can?(:visitors, :check_in) %>
       <%= form_with url: check_in_visitor_path(@visitor), class: "inline-form" do |form| %>
-        <%= form.text_field :otp, placeholder: "6-digit OTP", inputmode: "numeric", required: true, autocomplete: "one-time-code" %>
+        <% unless current_user.can_mark_visitor_directly? %>
+          <%= form.text_field :otp, placeholder: "6-digit OTP", inputmode: "numeric", required: true, autocomplete: "one-time-code" %>
+        <% end %>
+        <%= form.datetime_local_field :occurred_at, value: Time.current.strftime("%Y-%m-%dT%H:%M") %>
         <%= form.submit "Check in" %>
       <% end %>
     <% end %>
     <% if current_user.can?(:visitors, :check_out) && @visitor.checked_in? %>
-      <%= button_to "Check out", check_out_visitor_path(@visitor), class: "button" %>
+      <%= form_with url: check_out_visitor_path(@visitor), class: "inline-form" do |form| %>
+        <%= form.datetime_local_field :occurred_at, value: Time.current.strftime("%Y-%m-%dT%H:%M") %>
+        <%= form.submit "Check out" %>
+      <% end %>
     <% end %>
   </div>
+</section>
+
+<section class="panel">
+  <h2>Check-in / check-out logs</h2>
+  <p>
+    <strong><%= @visitor.name %></strong>
+    · Pass <span class="mono"><%= @visitor.pass_code %></span>
+    · <%= @visitor.location_label.presence || "Location not set" %>
+  </p>
+
+  <% if @visitor_movements.any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>Moment</th>
+          <th>Action</th>
+          <th>Recorded by</th>
+          <th>Source</th>
+          <th>IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @visitor_movements.each do |movement| %>
+          <tr>
+            <td><%= movement.occurred_at.to_fs(:short) %></td>
+            <td>
+              <span class="pill <%= "ok" if movement.inbound? %>">
+                <%= movement.inbound? ? "Checked in" : "Checked out" %>
+              </span>
+            </td>
+            <td><%= movement.recorded_by&.full_name.presence || "Visitor / kiosk" %></td>
+            <td><%= movement.source.humanize %></td>
+            <td class="mono"><%= movement.ip_address.presence || "-" %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p>No check-in or check-out logs yet.</p>
+  <% end %>
+</section>
+
+<section class="panel">
+  <h2>Visit history</h2>
+
+  <% if @visitor_stays.any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>Checked in</th>
+          <th>Checked out</th>
+          <th>Duration</th>
+          <th>Source</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @visitor_stays.each do |stay| %>
+          <tr>
+            <td><%= stay.checked_in_at.to_fs(:short) %></td>
+            <td>
+              <% if stay.ongoing? %>
+                <span class="pill ok">On site</span>
+              <% else %>
+                <%= stay.checked_out_at.to_fs(:short) %>
+              <% end %>
+            </td>
+            <td><%= stay.duration_in_words %></td>
+            <td><%= stay.entry_source.humanize %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p>No visits recorded yet.</p>
+  <% end %>
 </section>

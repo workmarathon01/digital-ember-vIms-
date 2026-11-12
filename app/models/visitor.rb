@@ -13,6 +13,7 @@ class Visitor < ApplicationRecord
   belongs_to :vhost, class_name: "User", optional: true
 
   has_one_attached :profile_image
+  has_many :visitor_movements, dependent: :destroy
 
   normalizes :contact_no, with: ->(contact_no) { contact_no.to_s.gsub(/\D/, "") }
 
@@ -207,12 +208,28 @@ class Visitor < ApplicationRecord
     true
   end
 
-  def mark_checked_in!(ip: nil)
-    update!(visitor_in_out: "IN", qr_checked_in_at: Time.current, status: true, otp_attempts: 0)
+  # Kept as convenience wrappers for callers that only need the state side
+  # effect. The actual history is written by VisitorGate.
+  def mark_checked_in!(ip: nil, occurred_at: Time.current, source: "staff", recorded_by: nil)
+    VisitorGate.check_in(self, ip: ip, occurred_at: occurred_at, source: source, recorded_by: recorded_by)
   end
 
-  def mark_checked_out!
-    update!(visitor_in_out: "OUT", status: false)
+  def mark_checked_out!(ip: nil, occurred_at: Time.current, source: "staff", recorded_by: nil)
+    VisitorGate.check_out(self, ip: ip, occurred_at: occurred_at, source: source, recorded_by: recorded_by)
+  end
+
+  # Newest-first list of paired entry/exit events. The open stay (if any) is
+  # the first record with `ongoing?` true.
+  def visit_history(limit: nil)
+    VisitorStay.history_for(self, limit: limit)
+  end
+
+  def current_stay
+    visit_history.find(&:ongoing?)
+  end
+
+  def last_movement_at
+    visitor_movements.maximum(:occurred_at)
   end
 
   private

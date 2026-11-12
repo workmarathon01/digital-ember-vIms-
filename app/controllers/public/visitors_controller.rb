@@ -90,6 +90,7 @@ module Public
 
       @found = true
       @already_checked_in = @visitor.checked_in?
+      @next_action = @already_checked_in ? "check_out" : "check_in"
       render :verify
     end
 
@@ -116,10 +117,46 @@ module Public
         )
       end
 
-      @already_checked_in = @visitor.checked_in?
-      @visitor.mark_checked_in! unless @already_checked_in
+      result = VisitorGate.check_in(@visitor, source: "public", ip: request.remote_ip)
+
+      unless result.success?
+        return render_public_error("check_in_failed", result.error_message, :unprocessable_entity)
+      end
+
+      @movement = result.movement
+      @already_checked_in = result.duplicate?
 
       render :check_in
+    end
+
+    # POST /public/visitors/check_out
+    #
+    # Idempotent check-out. Scanning an already-closed pass reports that the
+    # visitor is out instead of failing the kiosk flow.
+    def check_out
+      @visitor = Visitor.find_by_scan_code(params[:code])
+
+      if @visitor.nil?
+        return render_public_error(
+          "pass_not_found",
+          "This pass could not be found. Check the code or register as a new visitor.",
+          :not_found
+        )
+      end
+
+      result = VisitorGate.check_out(@visitor, source: "public", ip: request.remote_ip)
+
+      if result.success?
+        @movement = result.movement
+        @already_checked_out = false
+      elsif result.error_code == :not_checked_in
+        @movement = @visitor.visitor_movements.recent_first.first
+        @already_checked_out = true
+      else
+        return render_public_error("check_out_failed", result.error_message, :unprocessable_entity)
+      end
+
+      render :check_out
     end
 
     # GET /public/hosts?unit_id=...
